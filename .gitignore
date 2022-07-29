@@ -1,0 +1,5 @@
+docker/deploy.sh
+export/*
+files/*
+proj/custom/*_custom.py
+proj/config/config.json

@@ -1,0 +1,33 @@
+{
+    "maintainers" : ["robertb@sccwrp.org"],
+    "mail_server"     : "192.168.1.18",
+    "send_from"    : "admin@checker.sccwrp.org",
+    "custom_unchanging_fields" : ["pendantid"],
+    "dtypes": {
+        "datalogger" : {
+            "human_friendly_dtype_name" : "Data Logger",
+            "tables": ["tbl_data_logger_raw"],
+            "login_fields": [
+                {"fieldname": "email", "fieldtype": "input"},
+                {"fieldname": "sitecode", "fieldtype": "select"},
+                {"fieldname": "loggernumber", "fieldtype": "select"},
+                {"fieldname": "pendantid", "fieldtype": "select"},
+                {"fieldname": "start", "fieldtype": "select"},
+                {"fieldname": "end", "fieldtype": "select"}
+            ],
+            "custom_checks_functions" : {
+                "tbl_data_logger_raw": "datalogger"
+            }
+        }
+        ,"testdtype" : {
+            "human_friendly_dtype_name" : "Test Data Type",
+            "tables": ["tbl_test"],
+            "login_fields": [
+                {"fieldname": "email", "fieldtype": "input"}
+            ],
+            "custom_checks_functions" : {
+                "tbl_test": "datalogger"
+            }
+        }
+    }
+}

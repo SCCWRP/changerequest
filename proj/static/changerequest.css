@@ -1,0 +1,86 @@
+/* Custom Style Sheet for the receipt tool */
+
+.hidden {
+    display: none;
+}
+
+.records-display-inner-container{
+    overflow: auto;
+}
+
+/*.records-display-outer-container{
+    align-content: center;
+    padding: 4rem;
+}*/
+.container .main-container{
+    align-content: center;
+    padding: 4rem;
+}
+
+.submission-header {
+    display: inline-block;
+}
+
+.header-element {
+    display: inline-block;
+}
+.row-odd {
+    background-color: #F5F5F5;
+}
+
+td {
+    padding-top:0;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    border: 1px solid black;
+    align-content: center;
+}
+th {
+    padding-top:0;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+table {
+    border-spacing: 100rem;
+}
+
+#overlay {
+    position: fixed; /* Sit on top of the page content */
+    display: none; /* Hidden by default */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5); /* Black background with opacity */
+    z-index: 2; /* Specify a stack order in case you're using a different order for other elements */
+    /*cursor: pointer;*/ /* Add a pointer on hover */
+}
+
+#overlay-text-container {
+    position: fixed; /* Sit on top of the page content */
+    position: absolute; /* Sit on top of the page content */
+    display: block; /* Hidden by default */
+    width: 35%; /* Full width (cover the whole page) */
+    height: 35%; /* Full height (cover the whole page) */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    text-align: center;
+    background-color: rgba(255,255,255); /* Black background with opacity */
+    z-index: 2; /* Specify a stack order in case you're using a different order for other elements */
+    /*cursor: pointer;*/ /* Add a pointer on hover */
+}
+
+.infotab-header {
+    cursor: pointer;
+    background-color:azure;
+    border: 1px solid rgba(110, 110, 110, 0.5)
+}
+
+.infotab-header.active {
+    background-color: rgb(214, 214, 214);
+    font-weight: bolder;
+}

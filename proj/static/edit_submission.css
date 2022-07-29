@@ -1,0 +1,66 @@
+td.accepted-change {
+    background-color: green;
+}
+td.rejected-change {
+    background-color: red;
+}
+.hidden {
+    display: none;
+}
+td {
+    border: 1px solid black;
+    padding-left: 3px;
+}
+th {
+    border: 1px solid black;
+    padding: 3px;
+} 
+.dataTable {
+    border: 1px solid black;
+    border-radius: 3px;
+    height: 500px; 
+    width: 100%; 
+    overflow: auto;
+    
+}
+.dataTable::-webkit-scrollbar {
+    -webkit-appearance: none;
+}
+
+.dataTable::-webkit-scrollbar:vertical {
+    width: 11px;
+}
+
+.dataTable::-webkit-scrollbar:horizontal {
+    height: 11px;
+}
+
+.dataTable::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    border: 2px solid white; /* should match background, can't be transparent */
+    background-color: rgba(0, 0, 0, .5);
+}
+
+.card {
+    width: 80%;
+}
+
+.card-header {
+    justify-content: center;
+    text-align: center;
+}
+
+.card-body {
+    padding: 10px;
+}
+
+.datatable-container {
+    margin-top:2.5rem;
+}
+.datatable-label {
+    margin-bottom:0;
+}
+
+#changed-records-datatable-container {
+    margin-top:0.5rem;
+}

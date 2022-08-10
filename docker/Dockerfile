@@ -33,6 +33,10 @@ WORKDIR /var/www/changerequest/
 #     -w /var/www/changerequest \
 #     -v /etc/timezone:/etc/timezone:ro \
 #     -v /etc/localtime:/etc/localtime:ro \
+#     -e DB_USERNAME='__DB_USERNAME__' \
+#     -e DB_PASSWORD='__DB_PASSWORD__' \
+#     -e DB_HOST='__DB_HOST__' \
+#     -e DB_NAME='__DB_NAME__' \
 #     -e DB_CONNECTION_STRING='__DB_PLATFORM__://__DB_USERNAME__:__DB_PASSWORD__@__DB_HOST__/__DB_NAME__' \
 #     -e CHANGE_HISTORY_TABLE='change_history' \
 #     -e FLASK_APP_SECRET_KEY='__RANDOM_STRING__' \

@@ -8,7 +8,7 @@ from .export import export
 from .login import login
 from .main import comparison
 from .finalize import finalize
-#from .custom.functions import add_custom_checks_function
+from .custom.functions import add_custom_checks_function
 
 CUSTOM_CONFIG_PATH = os.path.join(os.getcwd(), 'proj', 'config')
 assert os.path.exists(os.path.join(CUSTOM_CONFIG_PATH, 'config.json')), \

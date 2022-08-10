@@ -117,7 +117,12 @@
             if (data.message === 'success') {
                 window.location = `/${$SCRIPT_ROOT}/edit-submission`;
             } else {
-                document.getElementById('overlay-text-container').innerText = 'An unexpected error occurred';
+                if (data.user_error_msg){
+                    alert(data.user_error_msg);
+                    setTimeout(function(){location.reload()}, 2000)
+                } else {
+                    document.getElementById('overlay-text-container').innerText = "Unexpected error occurred";
+                }
                 console.error('something bad happened');
             }
 

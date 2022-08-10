@@ -125,7 +125,7 @@ def sessiondata():
     print(df)
 
     if df.empty:
-        return jsonify(message = 'No data found')
+        return jsonify(user_error_msg = 'No data found')
 
     df.columns = [x.lower() for x in sqlresult.keys()]
     

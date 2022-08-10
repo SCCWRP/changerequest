@@ -119,7 +119,7 @@
             } else {
                 if (data.user_error_msg){
                     alert(data.user_error_msg);
-                    setTimeout(function(){location.reload()}, 2000)
+                    location.reload();
                 } else {
                     document.getElementById('overlay-text-container').innerText = "Unexpected error occurred";
                 }

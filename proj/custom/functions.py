@@ -70,6 +70,7 @@ def get_badrows(df_badrows, badcol = None, message = ""):
     ]
 
 
+
 # When the app starts up, it will check to see if all the custom checks functions exist if they were specified in the config file
 # If they were not specified, it will create the file and the function
 def add_custom_checks_function(directory, func_name):
@@ -94,6 +95,9 @@ def add_custom_checks_function(directory, func_name):
     
     newfile.close()
     templatefile.close()
+
+    initfile = open(os.path.join(directory, '__init__.py'), 'a')
+    initfile.write(f'\nfrom .{func_name}_custom import {func_name}')
 
     if os.path.exists(newfilepath):
         print("Success")

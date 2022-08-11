@@ -88,50 +88,12 @@ app.register_blueprint(comparison)
 app.register_blueprint(finalize)
 
 
-# When the app starts up, it will check to see if all the custom checks functions exist if they were specified in the config file
-# If they were not specified, it will create the file and the function
-def add_custom_checks_function(directory, func_name):
-    func_name = str(func_name).lower()
-    
-    newfilepath = os.path.join(directory, f"{func_name}_custom.py")
-    
-    if os.path.exists(newfilepath):
-        print(f"{newfilepath} already exists")
-        return
-        
-    # The reason i do an if statement rather than an assert is because i dont want to prevent the app from running altogether
-    templatefilepath = os.path.join(directory, f"example.py")
-    if not os.path.exists(templatefilepath):
-        print(f"example.py not found in {directory}")
-
-    newfile = open(newfilepath, 'w')
-    templatefile = open(templatefilepath, 'r')
-
-    for line in templatefile:
-        newfile.write(line.replace('__example__', func_name))
-    
-    newfile.close()
-    templatefile.close()
-
-    initfile = open(os.path.join(directory, '__init__.py'), 'a')
-    initfile.write(f'\nfrom .{func_name}_custom import {func_name}')
-
-    if os.path.exists(newfilepath):
-        print("Success")
-        return True
-    else:
-        print("Something went wrong")
-        return False
-    
-    
-
-
-
 tmpdtypes = CUSTOM_CONFIG.get('dtypes')
 custom_dir = os.path.join(os.getcwd(), 'proj','custom')
 for dtyp in tmpdtypes.keys():
     for tbl, func_name in tmpdtypes.get(dtyp).get("custom_checks_functions").items():
         add_custom_checks_function(custom_dir, func_name)
+
 
 # App depends on a schema called tmp existing in the database
 app.eng.execute("CREATE SCHEMA IF NOT EXISTS tmp;")

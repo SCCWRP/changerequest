@@ -5,10 +5,7 @@ def compare(df_origin, df_modified, pkey_columns, immutable_cols = []):
     # merge the changed data with the original
     print("pkey_columns")
     print(pkey_columns)
-    print("df_origin.head()")
-    print(df_origin[['pendantid','datetime']].head())
-    print("df_modified.head()")
-    print(df_modified[['pendantid','datetime']].head())
+
     merged_df = df_origin.merge(df_modified, how = 'outer', on = pkey_columns, suffixes = ('_old',''))
     
     print("### non_pkey_columns simply refers to the columns that we are comparing. Everything except objectid")

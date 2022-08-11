@@ -328,6 +328,11 @@ WHERE objectid = {x['objectid']}"
     
     session['sql_filepath'] = sql_filepath
     
+    # make sure the highlighted excel file directory actually exists
+    highlight_dir = os.path.join(os.getcwd(), 'export', 'highlightExcelFiles')
+    if not os.path.exists(highlight_dir):
+        os.makedirs(highlight_dir)
+    
     path_to_highlighted_excel =  f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx"
     session['comparison_path'] = path_to_highlighted_excel
 

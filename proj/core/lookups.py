@@ -96,7 +96,7 @@ def checkLookUpLists(dataframe, tablename, eng, dtype, *args, output = None, **k
                 )
             ].empty
         else
-            None 
+            {}
         , axis = 1
     )
 

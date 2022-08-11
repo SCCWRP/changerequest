@@ -132,3 +132,6 @@ custom_dir = os.path.join(os.getcwd(), 'proj','custom')
 for dtyp in tmpdtypes.keys():
     for tbl, func_name in tmpdtypes.get(dtyp).get("custom_checks_functions").items():
         add_custom_checks_function(custom_dir, func_name)
+
+# App depends on a schema called tmp existing in the database
+app.eng.execute("CREATE SCHEMA IF NOT EXISTS tmp;")

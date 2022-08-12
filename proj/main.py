@@ -236,7 +236,10 @@ def main():
     hislog = hislog \
         .groupby(["objectid","tablename"]) \
         .apply(
-            lambda subdf: " , ".join(f"{x[0]} = '{x[1]}'" for x in zip(subdf.changed_cols, subdf.newvalue))
+            # Set to NULL if they deleted the value
+            lambda subdf: " , ".join(
+                f"{x[0]} = '{x[1]}'" if ( (x[1] != '') and (not pd.isnull(x[1])) ) else f"{x[0]} = NULL" for x in zip(subdf.changed_cols, subdf.newvalue)
+            )
         ) \
         .reset_index() \
         .rename(columns = {0: 'changes'}) \

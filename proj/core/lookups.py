@@ -48,21 +48,25 @@ def checkLookUpLists(dataframe, tablename, eng, dtype, *args, output = None, **k
         checkData(
             dataframe = dataframe,
             tablename = session.get('tablename'),
-            dtype = dtype,
+            # dtype = dtype,
             badrows = [
                 {
                     'row_number': rownum,
                     'objectid': objid,
-                    'value': val,
+                    'value': val if not pd.isnull(val) else str(val),
                     'message': msg
                 } 
                 for rownum, objid, val, msg in
                     dataframe[
-                        ~dataframe[x['column_name']] \
-                        .isin(
-                            pd.read_sql(f"SELECT {x['foreign_column_name']} FROM {x['foreign_table_name']};", eng) \
-                            [x['foreign_column_name']] \
-                            .values
+                        # Exclude null values from lookup list check
+                        ~pd.isnull(dataframe[x['column_name']].replace('', pd.NA)) & 
+                        (
+                            ~dataframe[x['column_name']] \
+                            .isin(
+                                pd.read_sql(f"SELECT {x['foreign_column_name']} FROM {x['foreign_table_name']};", eng) \
+                                [x['foreign_column_name']] \
+                                .values
+                            )
                         )
                     ] \
                     .apply(

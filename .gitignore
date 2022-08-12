@@ -4,3 +4,4 @@ files/*
 proj/custom/__init__.py
 proj/custom/*_custom.py
 proj/config/config.json
+proj/custom/__pycache__/

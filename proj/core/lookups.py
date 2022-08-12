@@ -53,7 +53,7 @@ def checkLookUpLists(dataframe, tablename, eng, dtype, *args, output = None, **k
                 {
                     'row_number': rownum,
                     'objectid': objid,
-                    'value': val if not pd.isnull(val) else str(val),
+                    'value': val if (not pd.isnull(val)) else str(val),
                     'message': msg
                 } 
                 for rownum, objid, val, msg in
@@ -61,10 +61,10 @@ def checkLookUpLists(dataframe, tablename, eng, dtype, *args, output = None, **k
                         # Exclude null values from lookup list check
                         ~pd.isnull(dataframe[x['column_name']].replace('', pd.NA)) & 
                         (
-                            ~dataframe[x['column_name']] \
+                            ~dataframe[x['column_name']].astype(str).apply(lambda x: str(x).strip()).replace('', pd.NA).dropna() \
                             .isin(
                                 pd.read_sql(f"SELECT {x['foreign_column_name']} FROM {x['foreign_table_name']};", eng) \
-                                [x['foreign_column_name']] \
+                                [x['foreign_column_name']].astype(str).apply(lambda x: str(x).strip()).replace('', pd.NA).dropna() \
                                 .values
                             )
                         )

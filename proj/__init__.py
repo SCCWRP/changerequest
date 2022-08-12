@@ -4,11 +4,17 @@ import pandas as pd
 from flask import Flask, g
 from flask_cors import CORS
 from sqlalchemy import create_engine
-from .export import export
-from .login import login
-from .main import comparison
-from .finalize import finalize
-from .custom.functions import add_custom_checks_function
+
+
+# Create __init__.py in the custom folder, or clear its contents if it exists
+# later there is a routine that adds the custom imports to the file
+# we have to do this here before the attempt is made to import anything from custom
+# This will prevent the possibility of the app importing something non existent
+CUSTOM_CHECKS_DIRECTORY = os.path.join(os.getcwd(), 'proj','custom')
+open(os.path.join(CUSTOM_CHECKS_DIRECTORY, '__init__.py'), 'w').close()
+
+
+from .custom.functions import add_custom_checks_function, fix_custom_imports
 
 CUSTOM_CONFIG_PATH = os.path.join(os.getcwd(), 'proj', 'config')
 assert os.path.exists(os.path.join(CUSTOM_CONFIG_PATH, 'config.json')), \
@@ -82,18 +88,24 @@ app.json_encoder = NpEncoder
 
 app.dtypes = CUSTOM_CONFIG.get('dtypes')
 
+
+for dtyp in app.dtypes.keys():
+    for tbl, func_name in app.dtypes.get(dtyp).get("custom_checks_functions").items():
+        add_custom_checks_function(CUSTOM_CHECKS_DIRECTORY, func_name)
+
+# fix the imports in the custom file
+fix_custom_imports(CUSTOM_CHECKS_DIRECTORY)
+
+# App depends on a schema called tmp existing in the database
+app.eng.execute("CREATE SCHEMA IF NOT EXISTS tmp;")
+
+# import blueprints down here after custom imports are fixed
+# if we tried doing it before, it might have ModuleNotFound Errors
+from .export import export
+from .login import login
+from .main import comparison
+from .finalize import finalize
 app.register_blueprint(export)
 app.register_blueprint(login)
 app.register_blueprint(comparison)
 app.register_blueprint(finalize)
-
-
-tmpdtypes = CUSTOM_CONFIG.get('dtypes')
-custom_dir = os.path.join(os.getcwd(), 'proj','custom')
-for dtyp in tmpdtypes.keys():
-    for tbl, func_name in tmpdtypes.get(dtyp).get("custom_checks_functions").items():
-        add_custom_checks_function(custom_dir, func_name)
-
-
-# App depends on a schema called tmp existing in the database
-app.eng.execute("CREATE SCHEMA IF NOT EXISTS tmp;")

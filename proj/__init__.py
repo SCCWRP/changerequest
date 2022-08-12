@@ -4,16 +4,6 @@ import pandas as pd
 from flask import Flask, g
 from flask_cors import CORS
 from sqlalchemy import create_engine
-
-
-# Create __init__.py in the custom folder, or clear its contents if it exists
-# later there is a routine that adds the custom imports to the file
-# we have to do this here before the attempt is made to import anything from custom
-# This will prevent the possibility of the app importing something non existent
-CUSTOM_CHECKS_DIRECTORY = os.path.join(os.getcwd(), 'proj','custom')
-open(os.path.join(CUSTOM_CHECKS_DIRECTORY, '__init__.py'), 'w').close()
-
-
 from .custom.functions import add_custom_checks_function, fix_custom_imports
 
 CUSTOM_CONFIG_PATH = os.path.join(os.getcwd(), 'proj', 'config')
@@ -85,10 +75,10 @@ class NpEncoder(json.JSONEncoder):
 
 app.json_encoder = NpEncoder
 
-
+# resolve custom imports, and fix if not set up correctly
+# if the app has to add a custom checks file, or an import statement, the app (container) needs to be restarted again
+CUSTOM_CHECKS_DIRECTORY = os.path.join(os.getcwd(), 'proj','custom')
 app.dtypes = CUSTOM_CONFIG.get('dtypes')
-
-
 for dtyp in app.dtypes.keys():
     for tbl, func_name in app.dtypes.get(dtyp).get("custom_checks_functions").items():
         add_custom_checks_function(CUSTOM_CHECKS_DIRECTORY, func_name)

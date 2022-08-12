@@ -98,6 +98,12 @@ def add_custom_checks_function(directory, func_name):
     newfile.close()
     templatefile.close()
 
+    initpath = os.path.join(directory, '__init__.py')
+    assert(os.path.exists(initpath)), f"{initpath} not found"
+
+    with open(initpath, 'a') as f:
+        f.write(f"from .{func_name}_custom import {func_name}")
+
     if os.path.exists(newfilepath):
         print("Success")
         print(f"Custom check file {newfilepath} added.")
@@ -118,19 +124,34 @@ def fix_custom_imports(directory):
 
     # function names should be the same as that which is before _custom.py
     # these function names should also match the keys of the datasets dictionary defined in the datasets.json configuration file
+    # custom import statements would be all the import statements that should be in theory in the __init__.py file for the app to be correctly configured
     custom_import_statements = [
         f"""from .{f.rsplit('/', 1)[-1].rsplit('_',1)[0].strip()}_custom import {f.rsplit('/', 1)[-1].rsplit('_',1)[0].strip()}"""
         for f in custom_files_glob
     ]
     print(custom_import_statements)
 
-    initfile = open(initpath,'w')
-    # stmt = statement
-    for stmt in custom_import_statements:
-        import_statement = f"{stmt}\n"
-        print(import_statement)
-        initfile.write(import_statement)
-    initfile.close()
+    # current imports would be the import statements currently in the __init__.py file
+    # An app that is configured correctly would have custom_import_statments the same as current_imports
+    import_pattern = re.compile('from\s+\.(\w+)_custom\s+import\s+(\w+)')
+    with open(initpath,'r') as initfile:
+        # store all lines of the original init file
+        initfile_all_lines_orig = [l.strip() for l in initfile.readlines()]
+        current_imports = [imp.strip() for imp in initfile_all_lines_orig if bool(re.search(import_pattern, imp))]
+        initfile.close()
+
+    imports_to_delete = set(current_imports) - set(custom_import_statements)
+    imports_to_add = set(custom_import_statements) - set(current_imports)
+    
+    with open(initpath,'w') as initfile:
+        for line in initfile_all_lines_orig:
+            if line.strip() not in imports_to_delete:
+                initfile.write(f"{line}\n")
+            
+        for imp in imports_to_add:
+            initfile.write(f"{imp}\n")
+        initfile.close()
+
     print("custom imports updated")
     print(f"Current contents of {initpath}:")
     with open(initpath, 'r') as f:

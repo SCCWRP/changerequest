@@ -22,10 +22,11 @@ function htmlToJSON() {
    }
 
    // show the loader gif
-   document.querySelector(".records-display-inner-container").innerHTML = '<img src="/changerequest/static/loading.gif">';
+   // script root is a global, defined in script tags in the head of the HTML document
+   document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
 
    // Send the edited records to the server
-   fetch("/changerequest/compare", {
+   fetch(`/${$SCRIPT_ROOT}/compare`, {
       method: "post",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dict)

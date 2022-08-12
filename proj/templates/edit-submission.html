@@ -2,6 +2,16 @@
 <html>
   <head>
 		<script type ="text/javascript"> 
+			// i have to figure out a better way fo doing this later
+			// deselects a cell when the enter key is pressed
+			const enterUnfocus = function(event, cell) { 
+				var code = (event.keyCode ? event.keyCode : event.which);
+				if (code == 13) {
+					cell.blur();
+				}
+			}
+		</script>
+		<script type ="text/javascript"> 
 			// This will allow the js code to be more dynamic with the url calls
 			// meaning when we deploy the app we dont need to modify the fetch calls every time
 			let $SCRIPT_ROOT = {{request.script_root|tojson|safe }};
@@ -10,7 +20,7 @@
 			$SCRIPT_ROOT = $SCRIPT_ROOT.replace('/','');
 		</script>
 		<link rel="stylesheet" href="{{url_for('static', filename='edit_submission.css')}}">
-		<script src="{{url_for('static', filename='html_to_json.js')}}"></script>
+		<script type="module" src="{{url_for('static', filename='save.js')}}"></script>
 		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 		
   </head>
@@ -98,7 +108,7 @@
 						<form action="{{request.script_root}}/download_change_history" method="GET" target = "_blank" style="float: right;">
 							<input id="submit-submission" type="submit" value="Download receipt" class="hidden post-change-option">
 						</form>
-						<input id="create-json" type="button" value="Save current changes" onclick="htmlToJSON()" class="hidden post-change-option">
+						<input id="save-change-btn" type="button" value="Save current changes" class="hidden post-change-option">
 					</div>
 				</div>
 			</div>
@@ -112,6 +122,6 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
-		<script src="{{url_for('static', filename='edit_submission.js')}}"></script>
+		<script type="module" src="{{url_for('static', filename='edit_submission.js')}}"></script>
 		<script src="{{url_for('static', filename='format_table.js')}}"></script>
 </html>

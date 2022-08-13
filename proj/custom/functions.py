@@ -86,8 +86,7 @@ def add_custom_checks_function(directory, func_name):
         
     # The reason i do an if statement rather than an assert is because i dont want to prevent the app from running altogether
     templatefilepath = os.path.join(directory, f"example.py")
-    if not os.path.exists(templatefilepath):
-        print(f"example.py not found in {directory}")
+    assert os.path.exists(templatefilepath), f"example.py not found in {directory}"
 
     newfile = open(newfilepath, 'w')
     templatefile = open(templatefilepath, 'r')

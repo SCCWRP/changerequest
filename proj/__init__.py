@@ -106,8 +106,10 @@ from .login import login
 from .main import comparison
 from .finalize import finalize
 from .auth import auth
+from .scraper import scraper
 app.register_blueprint(export)
 app.register_blueprint(login)
 app.register_blueprint(comparison)
 app.register_blueprint(finalize)
 app.register_blueprint(auth)
+app.register_blueprint(scraper)

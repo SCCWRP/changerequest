@@ -98,12 +98,17 @@ def sessiondata():
     # One table is for the original submission, whereas the other is for the changed submission
     # Storing their temporary changed data will make it easier for us to run various checks on their data
     # Not all checks apply to inficidual rows of data. Some checks are by batches of rows, or groups of rows
-    session['origin_tablename'] = f"orig_{session.get('submissionid')}"
-    session['modified_tablename'] = f"mod_{session.get('submissionid')}"
+    session['origin_tablename'] = f"orig_{session.get('tablename')}_{session.get('submissionid')}"
+    session['modified_tablename'] = f"mod_{session.get('tablename')}_{session.get('submissionid')}"
 
+    
+    
     # Called tmp sql since it creates the temporary tables in the tmp schema
     # BY THE WAY, the SMC change request app needs to have things done on the basis of agency, etc because in many cases the submission ID is missing
     # We might want to consider populating that column based on the created_date, so the SMC data can work with this version of the app
+    # 8/12/2022 - I think for the SMC database, it will be best for us to back populate the submission id's for the sake of tracking data and for this change application - Robert
+    
+
     tmp_sql = f"""
         CREATE TABLE IF NOT EXISTS tmp.{session['modified_tablename']} (LIKE sde.{tablename} INCLUDING ALL);
         CREATE TABLE IF NOT EXISTS tmp.{session['origin_tablename']} (LIKE sde.{tablename} INCLUDING ALL);
@@ -118,6 +123,8 @@ def sessiondata():
         """
     print(tmp_sql)
 
+    
+    
     # We embedded the SQL which selects their submission into the same string that creates, and updates the "original data" temp table
     # Reason being, we ran it separately with pandas read sql after, got an error saying the table didnt exist
     # We hypothesized that the code that read the table was executing before the code that created the table was done, so we wanted to 

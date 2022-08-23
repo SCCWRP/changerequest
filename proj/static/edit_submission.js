@@ -1,6 +1,9 @@
+import { addTips } from "./tooltip.js";
+import { saveChanges } from "./save.js";
+
 (function(){
     
-    uploadForm = document.querySelector("#upload-form");
+    const uploadForm = document.querySelector("#upload-form");
     
     
     /* The routine that gets executed when the file is submitted */
@@ -56,28 +59,19 @@
             b => b.classList.remove("hidden")
         )
 
-        /* tooltip. Yes, it was directly copy pasted from stackoverflow */
-        // https://stackoverflow.com/questions/33000298/creating-a-clickable-tooltip-in-javascript-or-bootstrap
-        $('[data-toggle="popover"]').popover({ trigger: "manual" , html: true, animation:false})
-            .on("mouseenter", function () {
-                var _this = this;
-                $(this).popover("show");
-                $(".popover").on("mouseleave", function () {
-                        $(_this).popover('hide');
-                });
-            }).on("mouseleave", function () {
-                var _this = this;
-                setTimeout(function () {
-                        if (!$(".popover:hover").length) {
-                                $(_this).popover("hide");
-                        }
-                }, 300);
-            });
+        addTips();
+        
         return data;
     })
 
     // the edit submission page should warn them they might have unsaved changes
     window.onbeforeunload = () => {return true}
+
+    // now add the listener for the save changes button, now that they have made an initial change request with the excel file
+    document.getElementById('save-change-btn').addEventListener('click', saveChanges)
+    Array.from(document.getElementsByClassName('editable-cell')).forEach(c => {
+        c.addEventListener()
+    })
 
 })()
 

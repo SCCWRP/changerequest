@@ -39,6 +39,11 @@ def get_submission_ids(dtypes, eng, dtype = None, **kwargs):
             ','.join(stt_cols)
         )
     
+    # -------- NOTE -------# 
+    # For this query to work it is absolutely critical that the dtypes in the datasets dictionary are the same and those of the checker application
+    # We will query submission ID's also based on the extended checks type, which is the same as a datatype
+    # TODO We will definitely need to somehow use psycopg2's classes, methods and functions for preventing SQL injection
+    # such as psycopg2.sql.Identifier, or psycopg2.sql.Literal
     sql = f"""
         SELECT DISTINCT submissionid, created_date AS submissiondate FROM submission_tracking_table 
         WHERE submit = 'yes'
@@ -46,6 +51,7 @@ def get_submission_ids(dtypes, eng, dtype = None, **kwargs):
         {
             ' AND '.join([ f"login_{k} = '{v}'" for k,v in kwargs.items() ])
         }
+        AND datatype = '{dtype.replace(';','').replace("'","")}'
         ORDER BY 1;
     """
     print(sql)

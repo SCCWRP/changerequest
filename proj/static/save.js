@@ -1,7 +1,9 @@
+import { addTips } from "./tooltip.js";
+
 // A handful of functions that handle html table 
 
 // Converts the html table displayed in the 'edit_submission' page to JSON that is formatted for to work like a pandas dataframe
-function htmlToJSON() { 
+export const saveChanges = function() { 
    
    var table = document.querySelector("table");
    var headers = [];
@@ -22,10 +24,11 @@ function htmlToJSON() {
    }
 
    // show the loader gif
-   document.querySelector(".records-display-inner-container").innerHTML = '<img src="/changerequest/static/loading.gif">';
+   // script root is a global, defined in script tags in the head of the HTML document
+   document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
 
    // Send the edited records to the server
-   fetch("/changerequest/compare", {
+   fetch(`/${$SCRIPT_ROOT}/compare`, {
       method: "post",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dict)
@@ -38,6 +41,7 @@ function htmlToJSON() {
       console.log(data);
       document.querySelector(".records-display-inner-container").innerHTML = data.tbl;
       formatDataTable(data);
+      addTips();
       return data;
    })
    .catch(err => {
@@ -46,10 +50,3 @@ function htmlToJSON() {
 
 }
 
-// deselects a cell when the enter key is pressed
-function enterUnfocus(event, cell) { 
-   var code = (event.keyCode ? event.keyCode : event.which);
-   if (code == 13) {
-      cell.blur();
-   }
-}

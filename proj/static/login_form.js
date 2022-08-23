@@ -96,7 +96,7 @@
             e.preventDefault();
             const dtype = f.dataset.dtype;
             const session_email = document.querySelector(`input[name="session_email"][data-dtype="${dtype}"]`).value;
-            formData = new FormData();
+            const formData = new FormData();
             Array.from(document.querySelectorAll(`.${dtype}-login-field-element`)).forEach(s => {
                 formData.append(s.getAttribute('name'), s.value);
             })

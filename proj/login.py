@@ -13,14 +13,20 @@ login = Blueprint('login', __name__)
 
 @login.route('/')
 def index():
-    session.clear()
-    dtypes = current_app.dtypes
 
-    return render_template("index.html", dtypes = dtypes)
+    # clear everything except authentication info
+    auth_info = session.get('AUTH_INFO')
+    session.clear()
+    session['AUTH_INFO'] = auth_info
+
+    dtypes = current_app.dtypes
+    
+
+    return render_template("index.jinja", dtypes = dtypes)
 
 @login.route("/edit-submission", methods = ['GET', 'POST'])
 def edit_data():
-    return render_template("edit-submission.html", login_fields = session.get('login_fields'))
+    return render_template("edit-submission.jinja", login_fields = session.get('login_fields'))
 
 @login.route('/login_values')
 def login_values():
@@ -62,7 +68,8 @@ def sessiondata():
     session['submissionid'] = request.form.get('submissionid')
     session['submissiondate'] = pd.Timestamp(int(request.form.get('submissionid')), unit = 's').strftime('%Y-%m-%d %H:%M:%S')
     session['tablename'] = request.form.get('tablename')
-    session['session_user_email'] = request.form.get('session_user_email')
+    # now provided in auth form
+    #session['session_user_email'] = request.form.get('session_user_email')
     session['dtype'] = request.form.get('dtype')
 
     tablename = session.get('tablename')

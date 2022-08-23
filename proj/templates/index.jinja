@@ -18,9 +18,10 @@
 	<link rel="stylesheet" href="{{url_for('static',filename='changerequest.css')}}" />
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
   </head>
-  <style>
-
-	</style>
+  
+  {% if not (session.AUTH_INFO['AUTHENTICATED'] == True) %}
+  	{% include 'auth.jinja' %}
+  {% else %}
   <body>
 
   <div class="container main-container">
@@ -54,12 +55,7 @@
 							<div class="form-container hidden" id="{{dtype}}-form-container" data-dtype="{{dtype}}">
 							{% endif %}
 								<form class="fetch-submission-form" id="{{dtype}}-form" data-dtype="{{dtype}}">
-									<div class="input-group form-group">
-										<div class = "select-form-container">
-											<label for="session_email">Enter your email address:</label>
-											<input type="email" name="session_email" placeholder="name@example.com" class="login-field-element {{dtype}}-login-field-element" data-dtype="{{dtype}}">
-										</div>
-									</div>
+									
 									{% for field in dtypes[dtype]['login_fields'] %}
 									<div class="input-group form-group">
 										<div class = "{{field.fieldtype}}-form-container">
@@ -118,6 +114,8 @@
 		</div>
 	</div>
   </body>
-
-<script src="{{url_for('static',filename='login_form.js')}}"></script>
+  
+  <script src="{{url_for('static',filename='login_form.js')}}"></script>
+  {% endif %}
+  <script src="{{url_for('static',filename='auth.js')}}"></script>
 </html>

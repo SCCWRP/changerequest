@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+		let $SCRIPT_ROOT = {{request.script_root|tojson|safe }};
+		console.log("$SCRIPT_ROOT");
+		console.log($SCRIPT_ROOT);
+		$SCRIPT_ROOT = $SCRIPT_ROOT.replace('/','');
+	</script>
+    <link rel="stylesheet" href="{{url_for('static',filename='changerequest.css')}}" />
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="card">
+        <div class="card-header">
+            Sign up to be authorized to edit data
+        </div>
+        <div class="card-body">
+            <form id="sign-up-form" data-route="{{request.script_root}}/signup">
+                <div class="form-group">
+                    <label for="firstname">First Name:</label>
+                    <input type="text" name="firstname">
+                </div>
+                
+                <div class="form-group">
+                    <label for="lastname">Last Name:</label>
+                    <input type="text" name="lastname">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address:</label>
+                    <input type="email" name="email">
+                </div>
+                
+                {% if agencies %}
+                <div class="form-group">
+                    <label for="agency">Agency:</label>
+                    <select type="agency" name="agency">
+                        {% for agencycode, agencyname in agencies.items() %}
+                        <option value="{{agencycode}}">{{agencyname}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" name="password">
+                </div>
+
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-info">Sign Up</button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+    <script src="{{url_for('static',filename='auth.js')}}"></script>
+</body>
+</html>

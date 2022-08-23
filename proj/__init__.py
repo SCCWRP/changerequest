@@ -6,6 +6,7 @@ from flask_cors import CORS
 from sqlalchemy import create_engine
 from .custom.functions import add_custom_checks_function, fix_custom_imports
 
+
 CUSTOM_CONFIG_PATH = os.path.join(os.getcwd(), 'proj', 'config')
 assert os.path.exists(os.path.join(CUSTOM_CONFIG_PATH, 'config.json')), \
     f"{os.path.join(CUSTOM_CONFIG_PATH, 'config.json')} configuration file not found"
@@ -86,6 +87,15 @@ for dtyp in app.dtypes.keys():
 # fix the imports in the custom file
 fix_custom_imports(CUSTOM_CHECKS_DIRECTORY)
 
+app.user_management = CUSTOM_CONFIG.get('user_management')
+# user management info
+if app.user_management.get('users_table'):
+    app.users_table = CUSTOM_CONFIG.get('users_table')
+else:
+    print("Warning - no users table specified - falling back to default db_editors")
+    app.users_table = 'db_editors'
+
+
 # App depends on a schema called tmp existing in the database
 app.eng.execute("CREATE SCHEMA IF NOT EXISTS tmp;")
 
@@ -95,7 +105,9 @@ from .export import export
 from .login import login
 from .main import comparison
 from .finalize import finalize
+from .auth import auth
 app.register_blueprint(export)
 app.register_blueprint(login)
 app.register_blueprint(comparison)
 app.register_blueprint(finalize)
+app.register_blueprint(auth)

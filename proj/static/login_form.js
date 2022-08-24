@@ -95,13 +95,13 @@
         f.addEventListener('submit',  async function(e) {
             e.preventDefault();
             const dtype = f.dataset.dtype;
-            const session_email = document.querySelector(`input[name="session_email"][data-dtype="${dtype}"]`).value;
+            
             const formData = new FormData();
             Array.from(document.querySelectorAll(`.${dtype}-login-field-element`)).forEach(s => {
                 formData.append(s.getAttribute('name'), s.value);
             })
             formData.append('dtype',dtype)
-            formData.append('session_email',session_email)
+            
             
             document.getElementById('overlay').style.display = 'block';
             let result = await fetch(
@@ -114,7 +114,7 @@
             let data = await result.json();
             console.log(data);
 
-            if (data.message === 'success') {
+            if (String(data.message).toLowerCase() === 'success') {
                 window.location = `/${$SCRIPT_ROOT}/edit-submission`;
             } else {
                 if (data.user_error_msg){
@@ -126,7 +126,6 @@
                 console.error('something bad happened');
             }
 
-            
         })
     })
 

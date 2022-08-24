@@ -2,6 +2,7 @@
 # This file contains the diff function #
 ########################################
 from flask import Blueprint, request, jsonify, session, current_app, g
+from flask_login import login_required
 import pandas as pd
 import numpy as np
 from werkzeug.utils import secure_filename
@@ -37,6 +38,7 @@ import os, sys
 
 comparison = Blueprint('comparison', __name__)
 @comparison.route("/compare", methods = ['GET', 'POST'])
+@login_required
 def main():
 
     eng = current_app.eng

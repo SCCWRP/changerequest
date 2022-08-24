@@ -19,9 +19,6 @@
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
   </head>
   
-  {% if not (session.AUTH_INFO['AUTHENTICATED'] == True) %}
-  	{% include 'auth.jinja' %}
-  {% else %}
   <body>
 
   <div class="container main-container">
@@ -59,7 +56,7 @@
 									{% for field in dtypes[dtype]['login_fields'] %}
 									<div class="input-group form-group">
 										<div class = "{{field.fieldtype}}-form-container">
-											<label for="{{field.fieldname}}">{{field.fieldname}}:</label>
+											<label for="{{field.fieldname}}">{% if field.fieldlabel %}{{field.fieldlabel}}{% else %}{{field.fieldname}}{% endif %}:</label>
 											<{{field.fieldtype}} name="{{field.fieldname}}" id="{{dtype}}-{{field.fieldname}}-{{field.fieldtype}}" class="login-field-{{field.fieldtype}} login-field-element {{dtype}}-login-field-{{field.fieldtype}} {{dtype}}-login-field-element" data-dtype="{{dtype}}" data-index="{{loop.index}}">
 											{% if field.fieldtype == 'select' %}
 											</{{field.fieldtype}}>
@@ -114,13 +111,8 @@
 		</div>
 	</div>
   </body>
-<<<<<<< HEAD:proj/templates/index.jinja
   
   <script src="{{url_for('static',filename='login_form.js')}}"></script>
-  {% endif %}
-  <script src="{{url_for('static',filename='auth.js')}}"></script>
-=======
+  <script src="{{url_for('static',filename='misc.js')}}"></script>
 
-<script type="module" src="{{url_for('static',filename='login_form.js')}}"></script>
->>>>>>> a219da03544eb1ee88b7f2dc594697eeaf7bd0ba:proj/templates/index.html
 </html>

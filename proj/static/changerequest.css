@@ -84,3 +84,7 @@ table {
     background-color: rgb(214, 214, 214);
     font-weight: bolder;
 }
+
+ul.errors {
+    list-style-type: none;
+}

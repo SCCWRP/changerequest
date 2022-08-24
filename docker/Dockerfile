@@ -1,10 +1,12 @@
-FROM debian:latest
+FROM python:latest
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y apt-utils
 RUN apt-get install -y python3-pip python3-dev build-essential libssl-dev libffi-dev
 RUN apt-get install -y libpcre3 libpcre3-dev
+RUN pip install --upgrade pip
 RUN pip3 install wheel
+RUN pip3 install markupsafe==2.0.1
 RUN pip3 install uwsgi flask ipython
 RUN pip3 install xlrd flask_session
 RUN pip3 install flask_cors
@@ -17,10 +19,13 @@ RUN pip3 install flask_mail
 RUN pip3 install geoalchemy2
 RUN pip3 install odo
 RUN pip3 install cerberus
+
 RUN pip3 install Werkzeug
 RUN pip3 install Flask-Bcrypt
 RUN pip3 install Flask-SQLAlchemy
 RUN pip3 install Flask-Login
+RUN pip3 install Flask-WTF
+RUN pip3 install email_validator
 
 RUN mkdir -p /var/www/changerequest/
 WORKDIR /var/www/changerequest/

@@ -8,27 +8,24 @@ import os
 from .utils.generic import unixtime
 from .utils.login import get_login_field, get_submission_ids
 
+from flask_login import login_required, current_user
+
 login = Blueprint('login', __name__)
 
 
 @login.route('/')
+@login_required
 def index():
-
-    # clear everything except authentication info
-    auth_info = session.get('AUTH_INFO')
-    session.clear()
-    session['AUTH_INFO'] = auth_info
-
     dtypes = current_app.dtypes
-    
-
     return render_template("index.jinja", dtypes = dtypes)
 
 @login.route("/edit-submission", methods = ['GET', 'POST'])
+@login_required
 def edit_data():
     return render_template("edit-submission.jinja", login_fields = session.get('login_fields'))
 
 @login.route('/login_values')
+@login_required
 def login_values():
     eng = g.eng
 
@@ -40,6 +37,7 @@ def login_values():
     return jsonify(data = data)
 
 @login.route('/submissions')
+@login_required
 def submissions():
     eng = g.eng
     
@@ -53,6 +51,7 @@ def submissions():
 
 
 @login.route("/post-session-data", methods = ['GET', 'POST'])
+@login_required
 def sessiondata():
 
     eng = g.eng
@@ -60,6 +59,19 @@ def sessiondata():
 
     print(request.form)
     session['login_fields'] = dict(request.form)
+
+    # check the organization they logged in as against the organization they are part of
+    login_organization = request.form.get(current_app.config.get('user_management').get('organization_login_field'))
+    admin_user = current_user.is_admin == 'yes'
+    authorized_user = current_user.is_authorized == 'yes'
+    if not authorized_user:
+        if current_user.organization != login_organization:
+            maintainers = current_app.config.get('maintainers')
+            maintainers_str = ','.join(maintainers)
+            return jsonify(user_error_msg=f"SCCWRP has not yet approved the user {current_user.email} to edit data with this application. Contact {maintainers_str}")
+    if not admin_user:
+        if current_user.organization != login_organization:
+            return jsonify(user_error_msg=f"You ({current_user.email}) are not authorized to edit data from {login_organization}")
 
     # Get the current sessionid, later used as a changeID
     session['sessionid'] = unixtime(datetime.today())
@@ -74,8 +86,6 @@ def sessiondata():
 
     tablename = session.get('tablename')
 
-
-    
     # Get the current sessionid, later used as a changeID
     session['sessionid'] = unixtime(datetime.today())
 
@@ -154,4 +164,4 @@ def sessiondata():
     with pd.ExcelWriter(original_data_filepath, engine = 'xlsxwriter', options = {'strings_to_formulas':False}) as writer:
         df.to_excel(writer, index=False)
 
-    return jsonify(message = 'success')
+    return jsonify(message = 'Success')

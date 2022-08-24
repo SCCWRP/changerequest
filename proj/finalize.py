@@ -5,8 +5,11 @@ import os
 from .utils.generic import change_history_update
 from .utils.mail import send_mail
 
+from flask_login import login_required
+
 finalize = Blueprint('finalize', __name__)
 @finalize.route("/final_submit", methods = ['GET', 'POST'])
+@login_required
 def savechanges():
     eng = g.eng
 

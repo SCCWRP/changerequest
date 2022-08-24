@@ -17,47 +17,94 @@
             Sign up to be authorized to edit data
         </div>
         <div class="card-body">
-            <form id="sign-up-form" data-route="{{request.script_root}}/signup">
+            {% for message in get_flashed_messages() %}
+                <div class="alert alert-warning">
+                    <button
+                    type="button"
+                    class="close"
+                    data-dismiss="alert">
+                    x
+                    </button>
+                    {{ message }}
+                </div>
+            {% endfor %}
+            <form id="sign-up-form" method="POST" action="{{request.script_root}}/auth/signup">
+                {{form.csrf_token}}
                 <div class="form-group">
-                    <label for="firstname">First Name:</label>
-                    <input type="text" name="firstname">
+                    <fieldset>
+                        {{form.firstname.label}}
+                        {{form.firstname}}
+                    </fieldset>
                 </div>
                 
                 <div class="form-group">
-                    <label for="lastname">Last Name:</label>
-                    <input type="text" name="lastname">
+                    <fieldset>
+                        {{form.lastname.label}}
+                        {{form.lastname}}
+                    </fieldset>
                 </div>
                 
                 <div class="form-group">
-                    <label for="email">Email Address:</label>
-                    <input type="email" name="email">
+                    <fieldset>
+                        {{form.email.label}}
+                        {{form.email}}
+                        {% if form.email.errors %}
+                        <ul class="errors">
+                            {% for error in form.email.errors %}
+                            <li>{{ error }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
                 </div>
                 
-                {% if agencies %}
                 <div class="form-group">
-                    <label for="agency">Agency:</label>
-                    <select type="agency" name="agency">
-                        {% for agencycode, agencyname in agencies.items() %}
-                        <option value="{{agencycode}}">{{agencyname}}</option>
-                        {% endfor %}
-                    </select>
+                    <fieldset>
+                        {{form.organization.label}}
+                        {{form.organization}}
+                        {% if form.organization.errors %}
+                        <ul class="errors">
+                            {% for error in form.organization.errors %}
+                            <li>{{ error }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
                 </div>
-                {% endif %}
-                
+               
+                <div class="form-group">
+                    <fieldset>
+                        {{form.password.label}}
+                        {{form.password}}
+                        {% if form.password.errors %}
+                        <ul class="errors">
+                            {% for error in form.password.errors %}
+                            <li>{{ error }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
+                </div>
 
                 <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" name="password">
+                    <fieldset>
+                        {{form.confirm.label}}
+                        {{form.confirm}}
+                        {% if form.confirm.errors %}
+                        <ul class="errors">
+                            {% for error in form.confirm.errors %}
+                            <li>❗ {{ error }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
                 </div>
 
-
-                <div class="form-group">
-                    <button type="submit" class="btn btn-info">Sign Up</button>
+                <div class="form-group submit-button">
+                    <fieldset>
+                        {{form.submit}}
+                    </fieldset>
                 </div>
 
             </form>
         </div>
     </div>
-    <script src="{{url_for('static',filename='auth.js')}}"></script>
+    <script src="{{url_for('static',filename='misc.js')}}"></script>
 </body>
 </html>

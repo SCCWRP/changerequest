@@ -18,9 +18,7 @@
   <style>
 
 	</style>
-  {% if not (session.auth_info['AUTHENTICATED'] == True) %}
-  	{% include 'auth.jinja' %}
-  {% else %}
+
   <body>
 
   <div class="container main-container">
@@ -46,6 +44,6 @@
   </body>
 <script type ="text/javascript"> var $SCRIPT_ROOT = {{request.script_root|tojson|safe }};  </script>
 <script src="{{url_for('static', filename='login_form.js')}}"></script>
-  {% endif %}
-  <script src="{{url_for('static',filename='auth.js')}}"></script>
+  
+  <script src="{{url_for('static',filename='misc.js')}}"></script>
 </html>

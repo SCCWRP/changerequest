@@ -6,9 +6,12 @@ import pandas as pd
 import os
 from .utils.mail import send_mail
 
+from flask_login import login_required
+
 export = Blueprint('export',__name__)
 
 @export.route('/submission-download', methods = ['GET', 'POST'])
+@login_required
 def download_submission():
 
     eng = g.eng
@@ -36,6 +39,7 @@ def download_submission():
 
 
 @export.route("/download_change_history", methods = ['GET','POST'])
+@login_required
 def download_change_history():
     return send_file(
         session['comparison_path'],

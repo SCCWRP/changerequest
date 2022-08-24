@@ -1,5 +1,9 @@
+import os, json
+import psycopg2
+from psycopg2 import sql
+
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
+from wtforms import StringField, SelectField, PasswordField, SubmitField
 from wtforms.validators import (
     DataRequired,
     Email,
@@ -8,15 +12,44 @@ from wtforms.validators import (
     Optional
 )
 
+CUSTOM_CONFIG_PATH = os.path.join(os.getcwd(), 'proj', 'config')
+assert os.path.exists(os.path.join(CUSTOM_CONFIG_PATH, 'config.json')), \
+    f"{os.path.join(CUSTOM_CONFIG_PATH, 'config.json')} configuration file not found"
+
+CUSTOM_CONFIG = json.loads( open( os.path.join(CUSTOM_CONFIG_PATH, 'config.json'), 'r' ).read() )
+
+conn = psycopg2.connect(
+    dbname = os.environ.get("DB_NAME"),
+    host = os.environ.get("DB_HOST"),
+    password = os.environ.get("DB_PASSWORD"),
+    user = os.environ.get("DB_USERNAME")
+)
+cur = conn.cursor()
+cur.execute(
+    sql.SQL(
+        """
+            SELECT {}, {} FROM {};
+        """
+    ).format(
+        sql.Identifier(CUSTOM_CONFIG.get('user_management').get("organization_value_column")),
+        sql.Identifier(CUSTOM_CONFIG.get('user_management').get("organization_label_column")),
+        sql.Identifier(CUSTOM_CONFIG.get('user_management').get("organization_table"))
+    )
+)
+
+org_select_opts = cur.fetchall()
+cur.close()
+conn.close()
+
 
 class SignupForm(FlaskForm):
     """User Sign-up Form."""
     firstname = StringField(
-        'Name',
+        'First Name',
         validators=[DataRequired()]
     )
     lastname = StringField(
-        'Name',
+        'Last Name',
         validators=[DataRequired()]
     )
     email = StringField(
@@ -26,6 +59,11 @@ class SignupForm(FlaskForm):
             Email(message='Enter a valid email.'),
             DataRequired()
         ]
+    )
+    organization = SelectField(
+        CUSTOM_CONFIG.get('user_management').get('organization_signup_field_label'),
+        choices=org_select_opts,
+        validators=[DataRequired()]
     )
     password = PasswordField(
         'Password',
@@ -41,10 +79,7 @@ class SignupForm(FlaskForm):
             EqualTo('password', message='Passwords must match.')
         ]
     )
-    website = StringField(
-        'Website',
-        validators=[Optional()]
-    )
+    
     submit = SubmitField('Register')
 
 

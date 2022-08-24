@@ -1,28 +1,48 @@
-from flask import Blueprint, render_template, request, jsonify, session, current_app, g
+from flask import Blueprint, render_template, request, jsonify, session, current_app, g, redirect, url_for, flash
 from flask_bcrypt import Bcrypt
+from flask_login import login_required, logout_user, current_user, login_user
+
 import os
 import psycopg2
 import pandas as pd
 from psycopg2 import sql
 from psycopg2.errors import UniqueViolation
+
 from .utils.mail import send_mail
+from .models import User
+from .forms import SignupForm, LoginForm
+from . import login_manager, db
+
 
 bcrypt = Bcrypt()
 
-auth = Blueprint('auth', __name__)
+auth = Blueprint('auth', __name__, url_prefix = "/auth")
 
-@auth.route('/signup-form')
+@auth.route('/signup')
 def signupform():
-    agencies = None
-    if current_app.user_management.get('agency_table'):
-        agency_table = current_app.user_management.get('agency_table')
-        agency_val_col = current_app.user_management.get('agency_value_column')
-        agency_label_col = current_app.user_management.get('agency_label_column')
-        agencies = pd.read_sql(f'''SELECT {agency_val_col} AS agencycode, {agency_label_col} as agencyname FROM {agency_table}''', g.eng).values
-        print(agencies)
-        agencies = {a[0]:a[1] for a in agencies}
-        print(agencies)
-    return render_template('signup.html', agencies = agencies)
+    
+    form = SignupForm()
+    if form.validate_on_submit():
+        existing_user = User.query.filter_by(email=form.email.data).first()
+        if existing_user is None:
+            user = User(
+                name=form.name.data,
+                email=form.email.data,
+                website=form.website.data
+            )
+            user.set_password(form.password.data)
+            db.session.add(user)
+            db.session.commit()  # Create new user
+            login_user(user)  # Log in as newly created user
+            #return redirect(url_for('main_bp.dashboard'))
+            return 'i hope this worked'
+            
+        flash('A user already exists with that email address.')
+    
+    return render_template(
+        'signup.jinja',
+        form=form
+    )
 
 @auth.route('/auth-form')
 def authform():

@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from flask import Flask, g
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 from sqlalchemy import create_engine
 from .custom.functions import add_custom_checks_function, fix_custom_imports
 
@@ -16,12 +18,26 @@ CUSTOM_CONFIG = json.loads( open( os.path.join(CUSTOM_CONFIG_PATH, 'config.json'
 app = Flask(__name__, static_url_path='/static')
 app.debug = True # remove for production
 
+# SQLALchemy
+db = SQLAlchemy()
+db.init_app(app)
+
+# LoginManager
+login_manager = LoginManager()
+
+# CORS
 CORS(app)
+
 # does your application require uploaded filenames to be modified to timestamps or left as is
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 app.config['MAIL_SERVER'] = CUSTOM_CONFIG.get('mail_server')
 app.config['SESSION_TYPE'] = 'filesystem'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_CONNECTION_STRING")
+app.config['SQLALCHEMY_ECHO'] = True
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 100MB limit
 app.secret_key = os.environ.get('FLASK_APP_SECRET_KEY')

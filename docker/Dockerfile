@@ -18,7 +18,9 @@ RUN pip3 install geoalchemy2
 RUN pip3 install odo
 RUN pip3 install cerberus
 RUN pip3 install Werkzeug
-RUN pip install Flask-Bcrypt
+RUN pip3 install Flask-Bcrypt
+RUN pip3 install Flask-SQLAlchemy
+RUN pip3 install Flask-Login
 
 RUN mkdir -p /var/www/changerequest/
 WORKDIR /var/www/changerequest/

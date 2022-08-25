@@ -16,19 +16,7 @@
     </head>
     <body>
         <div class="card">
-            {% block session_user_info %}
-            {% if current_user.is_authenticated %}
-            <div class="card-header login-session-info-header">
-                <p>You are logged in as: {{current_user.email}}</p>
-                <p>Your organization: {{current_user.organization}}</p>
-                <p><a href="{{url_for('auth.logout')}}">Sign out</a></p>
-            </div>
-            {% endif %}
-            {% endblock %}
-            {% block body %}{% endblock %}
         </div>
     </body>
-    {% block scripts %}
     <script src="{{url_for('static',filename='misc.js')}}"></script>
-    {% endblock %}
 </html>

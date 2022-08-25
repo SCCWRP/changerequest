@@ -40,6 +40,7 @@ def load_user(user_id):
 
 @auth_bp.route('/signup', methods = ['GET','POST'])
 def signup():
+    
     form = SignupForm()
     if form.validate_on_submit():
         existing_user = User.query.filter_by(email=form.email.data).first()
@@ -55,7 +56,7 @@ def signup():
             db.session.commit()  # Create new user
             #login_user(user)  # Log in as newly created user
             token = generate_confirmation_token(user.email)
-            url = 'https://192.168.1.18/smcintercal-changerequest/auth/confirm/{}'.format(token)
+            url = os.path.join(request.url_root, 'auth', 'confirm', token)
             html = render_template('confirmation_email.jinja2', confirm_url = url)
             flash(f"Confirmation email sent to {user.email}")
             send_mail(current_app.send_from, [user.email], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
@@ -115,7 +116,7 @@ def confirm_email(token):
         print("email_address")
         print(email_address)
         token = generate_confirmation_token(email_address)
-        url = 'https://192.168.1.18/smcintercal-changerequest/auth/confirm/{}'.format(token)
+        url = os.path.join(request.url_root, 'auth', 'confirm', token)
         html = render_template('confirmation_email.jinja2', confirm_url = url)
         send_mail(current_app.send_from, [email_address], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
         flash(f"Confirmation email sent to {email_address}")

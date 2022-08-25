@@ -2,32 +2,26 @@
     "maintainers" : ["robertb@sccwrp.org"],
     "mail_server"     : "192.168.1.18",
     "send_from"    : "admin@checker.sccwrp.org",
-    "custom_unchanging_fields" : ["pendantid"],
+    "custom_unchanging_fields" : [],
     "dtypes": {
-        "datalogger" : {
-            "human_friendly_dtype_name" : "Data Logger",
-            "tables": ["tbl_data_logger_raw"],
+        "chemistry" : {
+            "human_friendly_dtype_name" : "Chemistry",
+            "tables": ["tbl_chemistryresults"],
             "login_fields": [
-                {"fieldname": "email", "fieldtype": "input"},
-                {"fieldname": "sitecode", "fieldtype": "select"},
-                {"fieldname": "loggernumber", "fieldtype": "select"},
-                {"fieldname": "pendantid", "fieldtype": "select"},
-                {"fieldname": "start", "fieldtype": "select"},
-                {"fieldname": "end", "fieldtype": "select"}
+                {"fieldname": "email", "fieldtype": "input", "fieldlabel": "Email"},
+                {"fieldname": "agency", "fieldtype": "select", "fieldlabel": "Agency"}
             ],
             "custom_checks_functions" : {
-                "tbl_data_logger_raw": "datalogger"
+                "tbl_chemistryresults": "chemistry"
             }
         }
-        ,"testdtype" : {
-            "human_friendly_dtype_name" : "Test Data Type",
-            "tables": ["tbl_test"],
-            "login_fields": [
-                {"fieldname": "email", "fieldtype": "input"}
-            ],
-            "custom_checks_functions" : {
-                "tbl_test": "datalogger"
-            }
-        }
+    },
+    "user_management" :{
+        "users_table": "db_editors",
+        "organization_login_field": "agency",
+        "organization_signup_field_label": "Agency",
+        "organization_table": "lu_agency",
+        "organization_value_column": "agencycode",
+        "organization_label_column": "agencyname"
     }
 }

@@ -94,3 +94,15 @@ class LoginForm(FlaskForm):
     )
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Log In')
+
+
+class EmailForm(FlaskForm):
+    """Form with just email to resend the token, or to reset password"""
+    email = StringField(
+        'Email',
+        validators=[
+            DataRequired(),
+            Email(message='Enter a valid email.')
+        ]
+    )
+    submit = SubmitField('Send Confirmation Email')

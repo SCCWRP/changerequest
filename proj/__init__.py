@@ -48,7 +48,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_CONNECTION_STRING")
 app.config['SQLALCHEMY_ECHO'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-app.config['SECURITY_PASSWORD_SALT'] = 'Somerandomstringthatwillbechanged'
+app.config['SECURITY_PASSWORD_SALT'] = os.environ.get('FLASK_APP_SECURITY_PASSWORD_SALT')
 
 
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 100MB limit

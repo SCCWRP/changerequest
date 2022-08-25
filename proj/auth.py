@@ -12,7 +12,7 @@ from datetime import datetime
 from .utils.mail import send_mail
 from .utils.token import generate_confirmation_token, confirm_token
 from .models import User
-from .forms import SignupForm, LoginForm
+from .forms import SignupForm, LoginForm, EmailForm
 from . import login_manager, db
 
 
@@ -57,6 +57,7 @@ def signup():
             token = generate_confirmation_token(user.email)
             url = 'https://192.168.1.18/smcintercal-changerequest/auth/confirm/{}'.format(token)
             html = render_template('confirmation_email.jinja2', confirm_url = url)
+            flash(f"Confirmation email sent to {user.email}")
             send_mail(current_app.send_from, [user.email], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
             return redirect(url_for('auth.signin'))
             
@@ -105,12 +106,29 @@ def logout():
     return redirect(url_for('auth.signin'))
 
 
-@auth_bp.route('/confirm/<token>')
+@auth_bp.route('/confirm/<token>', methods = ['GET','POST'])
 def confirm_email(token):
+    # in case they are asking for another email to be sent
+    form = EmailForm()
+    if form.validate_on_submit():
+        email_address = form.email.data
+        print("email_address")
+        print(email_address)
+        token = generate_confirmation_token(email_address)
+        url = 'https://192.168.1.18/smcintercal-changerequest/auth/confirm/{}'.format(token)
+        html = render_template('confirmation_email.jinja2', confirm_url = url)
+        send_mail(current_app.send_from, [email_address], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
+        flash(f"Confirmation email sent to {email_address}")
+        return redirect(url_for('login.index'))
+    
     try:
         email = confirm_token(token)
-    except:
-        return 'token expired'
+        if email == False:
+            raise Exception("Token expired")
+    except Exception as e:
+        flash(str(e))
+        return render_template('confirm_email.jinja2', form = form)
+
     user = User.query.filter_by(email=email).first_or_404()
     if user.email_confirmed == 'yes':
         flash('Account already confirmed. Please login.', 'success')

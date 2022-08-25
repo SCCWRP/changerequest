@@ -34,12 +34,21 @@ CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
 
+app.config['WTF_CSRF_ENABLED'] = True
+
 app.config['MAIL_SERVER'] = CUSTOM_CONFIG.get('mail_server')
+app.config['MAIL_DEFAULT_SENDER'] = CUSTOM_CONFIG.get('send_from')
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = True
+
+
 app.config['SESSION_TYPE'] = 'filesystem'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_CONNECTION_STRING")
 app.config['SQLALCHEMY_ECHO'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config['SECURITY_PASSWORD_SALT'] = 'Somerandomstringthatwillbechanged'
 
 
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 100MB limit

@@ -26,6 +26,7 @@ RUN pip3 install Flask-SQLAlchemy
 RUN pip3 install Flask-Login
 RUN pip3 install Flask-WTF
 RUN pip3 install email_validator
+RUN pip3 install itsdangerous
 
 RUN mkdir -p /var/www/changerequest/
 WORKDIR /var/www/changerequest/

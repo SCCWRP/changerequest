@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, session, current_app, g, redirect, url_for, flash
+from flask import Blueprint, render_template, request, jsonify, session, current_app, g, redirect, url_for, flash, render_template_string
 from flask_bcrypt import Bcrypt
 from flask_login import login_required, logout_user, current_user, login_user
 
@@ -7,8 +7,10 @@ import psycopg2
 import pandas as pd
 from psycopg2 import sql
 from psycopg2.errors import UniqueViolation
+from datetime import datetime
 
 from .utils.mail import send_mail
+from .utils.token import generate_confirmation_token, confirm_token
 from .models import User
 from .forms import SignupForm, LoginForm
 from . import login_manager, db
@@ -52,6 +54,10 @@ def signup():
             db.session.add(user)
             db.session.commit()  # Create new user
             #login_user(user)  # Log in as newly created user
+            token = generate_confirmation_token(user.email)
+            url = 'https://192.168.1.18/smcintercal-changerequest/auth/confirm/{}'.format(token)
+            html = render_template('confirmation_email.jinja', confirm_url = url)
+            send_mail(current_app.send_from, [user.email], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
             return redirect(url_for('auth.signin'))
             
         flash('A user already exists with that email address.')
@@ -91,5 +97,22 @@ def logout():
     return redirect(url_for('auth.signin'))
 
 
+@auth_bp.route('/confirm/<token>')
+def confirm_email(token):
+    try:
+        email = confirm_token(token)
+    except:
+        return 'token expired'
+    user = User.query.filter_by(email=email).first_or_404()
+    if user.email_confirmed == 'yes':
+        flash('Account already confirmed. Please login.', 'success')
+        return redirect(url_for('auth.signin'))
+    
+    user.email_confirmed = 'yes'
+    user.email_confirmed_date = datetime.now()
+    db.session.add(user)
+    db.session.commit()
+    flash('You have confirmed your account. Thanks!', 'success')
+    return redirect(url_for('auth.signin'))
 
 

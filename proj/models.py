@@ -1,6 +1,7 @@
 import json, os
 from . import db
 from sqlalchemy import text
+from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -62,10 +63,14 @@ class User(UserMixin, db.Model):
         primary_key=False,
         server_default = "no"
     )
+    email_confirmed_date = db.Column(
+        db.DateTime(),
+        primary_key=False
+    )
     signup_date = db.Column(
         db.DateTime(),
         primary_key=False,
-        server_default = text('NOW()')
+        default = datetime.now()
     )
 
     def set_password(self, password):

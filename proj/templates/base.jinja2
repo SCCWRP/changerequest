@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {% block head %}
+        <title>SCCWRP Data Change Request</title>
+        <script>
+            let $SCRIPT_ROOT = {{request.script_root|tojson|safe}};
+            console.log("$SCRIPT_ROOT");
+            console.log($SCRIPT_ROOT);
+            $SCRIPT_ROOT = $SCRIPT_ROOT.replace('/','');
+        </script>
+        <link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSN1KajqxT6Orr6rQ1jb4BpLDf3wUnunW9ZvWwy_WWFrg&amp;s">
+        <link rel="stylesheet" href="{{url_for('static',filename='changerequest.css')}}" />
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+        {% endblock %}
+    </head>
+    <body>
+        <div class="card">
+            {% if current_user.is_authenticated %}
+            <div class="card-header login-session-info-header">
+                <p>You are logged in as: {{current_user.email}}</p>
+                <p>Your organization: {{current_user.organization}}</p>
+                <p><a href="{{url_for('auth.logout')}}">Sign out</a></p>
+            </div>
+            {% endif %}
+            {% block body %}{% endblock %}
+        </div>
+    </body>
+    {% block scripts %}
+    <script src="{{url_for('static',filename='misc.js')}}"></script>
+    {% endblock %}
+</html>

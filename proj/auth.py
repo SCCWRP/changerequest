@@ -25,7 +25,7 @@ auth_bp = Blueprint('auth', __name__, url_prefix = "/auth")
 @login_manager.unauthorized_handler
 def unauthorized():
     """Redirect unauthorized users to Login page."""
-    flash('You must be logged in to view that page.')
+    # flash('You must be logged in to view that page.')
     return redirect(url_for('auth.signin'))
 
 
@@ -56,14 +56,14 @@ def signup():
             #login_user(user)  # Log in as newly created user
             token = generate_confirmation_token(user.email)
             url = 'https://192.168.1.18/smcintercal-changerequest/auth/confirm/{}'.format(token)
-            html = render_template('confirmation_email.jinja', confirm_url = url)
+            html = render_template('confirmation_email.jinja2', confirm_url = url)
             send_mail(current_app.send_from, [user.email], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
             return redirect(url_for('auth.signin'))
             
         flash('A user already exists with that email address.')
     
     return render_template(
-        'signup.jinja',
+        'signup.jinja2',
         form=form
     )
 
@@ -81,12 +81,16 @@ def signin():
         if user and user.check_password(password=form.password.data):
             login_user(user)
             next_page = request.args.get('next')
+            # its weird because the term "login" is used for the form that searches for the submission, but "sign in" is used for the user authentication part
+            # I know that anyone taking over this application will be confused by that
+            # For anyone taking over this - We added user authentication later on
+            # Feel free to change the naming convention to make it more intuitive if you would like
             return redirect(next_page or url_for('login.index'))
 
         flash('Invalid username/password combination')
         return redirect(url_for('auth.signin'))
 
-    return render_template('signin.jinja', form=form)
+    return render_template('signin.jinja2', form=form)
 
 
 
@@ -94,6 +98,10 @@ def signin():
 def logout():
     flash(f"{current_user.email} successfully signed out")
     logout_user()
+    print("current_user")
+    print(current_user)
+    print("current_user.is_authenticated")
+    print(current_user.is_authenticated)
     return redirect(url_for('auth.signin'))
 
 

@@ -1,0 +1,25 @@
+{% extends 'base.jinja2' %}
+{% block body %}
+<div class="container main-container">
+    <br>
+    <div class="container">
+        {%if success%}
+            <p>Successful change request received from {{session_user_email}}</p>
+            <p>Datatype: {{datatype}}</p>
+            <p>Original Submission Date: {{submissiondate}}</p>
+            <p>Original Submission ID#: {{submissionid}}</p>
+            <p>Change Request ID#: {{change_id}}</p>
+            {% for key in login_fields %}
+            <p>{{key}}: {{login_fields[key]}}</p>
+            {% endfor %}
+        {%else%}
+            <p>Oops! Something went wrong. SCCWRP staff has been notified.</p>
+        {%endif%}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{url_for('static', filename='login_form.js')}}"></script>
+{% endblock %}

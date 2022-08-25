@@ -1,0 +1,105 @@
+{% extends 'base.jinja2'%}
+{% block body %}
+    <div class="container main-container">
+        <br>
+        <div class="container">
+            <div class="card">
+                <div class="card-header">
+                    Sign up to be authorized to edit data
+                </div>
+                <div class="card-body">
+                    {% for message in get_flashed_messages() %}
+                        <div class="alert alert-warning">
+                            <button
+                            type="button"
+                            class="close"
+                            data-dismiss="alert">
+                            x
+                            </button>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                    <form id="sign-up-form" method="POST" action="{{request.script_root}}/auth/signup">
+                        {{form.csrf_token}}
+                        <div class="form-group">
+                            <fieldset>
+                                {{form.firstname.label}}
+                                {{form.firstname}}
+                            </fieldset>
+                        </div>
+                        
+                        <div class="form-group">
+                            <fieldset>
+                                {{form.lastname.label}}
+                                {{form.lastname}}
+                            </fieldset>
+                        </div>
+                        
+                        <div class="form-group">
+                            <fieldset>
+                                {{form.email.label}}
+                                {{form.email}}
+                                {% if form.email.errors %}
+                                <ul class="errors">
+                                    {% for error in form.email.errors %}
+                                    <li>{{ error }}</li>{% endfor %}
+                                </ul>
+                                {% endif %}
+                            </fieldset>
+                        </div>
+                        
+                        <div class="form-group">
+                            <fieldset>
+                                {{form.organization.label}}
+                                {{form.organization}}
+                                {% if form.organization.errors %}
+                                <ul class="errors">
+                                    {% for error in form.organization.errors %}
+                                    <li>{{ error }}</li>{% endfor %}
+                                </ul>
+                                {% endif %}
+                            </fieldset>
+                        </div>
+                    
+                        <div class="form-group">
+                            <fieldset>
+                                {{form.password.label}}
+                                {{form.password}}
+                                {% if form.password.errors %}
+                                <ul class="errors">
+                                    {% for error in form.password.errors %}
+                                    <li>{{ error }}</li>{% endfor %}
+                                </ul>
+                                {% endif %}
+                            </fieldset>
+                        </div>
+
+                        <div class="form-group">
+                            <fieldset>
+                                {{form.confirm.label}}
+                                {{form.confirm}}
+                                {% if form.confirm.errors %}
+                                <ul class="errors">
+                                    {% for error in form.confirm.errors %}
+                                    <li>❗ {{ error }}</li>{% endfor %}
+                                </ul>
+                                {% endif %}
+                            </fieldset>
+                        </div>
+
+                        <div class="form-group submit-button">
+                            <fieldset>
+                                {{form.submit}}
+                            </fieldset>
+                        </div>
+                        
+                        <div class="form-group">
+                            <p>Already registered? <a href="{{url_for('auth.signin')}}">Sign in</a></p>
+                        </div>
+                        
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

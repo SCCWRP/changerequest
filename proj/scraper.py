@@ -57,7 +57,7 @@ def lookuplists():
                         # turn dataframe into dictionary object
                         scraper_json = scraper_results.to_dict('records')
                         # give jinga the listname, primary key (to highlight row), and fields/rows
-                        return render_template('scraper.html', list=layer, primary=primary_key[0], scraper=scraper_json)
+                        return render_template('scraper.jinja2', list=layer, primary=primary_key[0], scraper=scraper_json)
                     # if sql error just return empty 
                     except Exception as err:
                         print(err)

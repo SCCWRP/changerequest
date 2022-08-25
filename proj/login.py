@@ -17,12 +17,12 @@ login = Blueprint('login', __name__)
 @login_required
 def index():
     dtypes = current_app.dtypes
-    return render_template("index.jinja", dtypes = dtypes)
+    return render_template("index.jinja2", dtypes = dtypes)
 
 @login.route("/edit-submission", methods = ['GET', 'POST'])
 @login_required
 def edit_data():
-    return render_template("edit-submission.jinja", login_fields = session.get('login_fields'))
+    return render_template("edit-submission.jinja2", login_fields = session.get('login_fields'))
 
 @login.route('/login_values')
 @login_required

@@ -172,7 +172,7 @@ UPDATE RECORDS: (See attached SQL file)\n
         
 
         return render_template(
-            "thankyou.html",
+            "thankyou.jinja2",
             success = True,
             datatype = session.get('dtype'),
             session_user_email = str(session.get('session_user_email')), 
@@ -201,7 +201,7 @@ UPDATE RECORDS: (See attached SQL file)\n
             server = current_app.config.get('MAIL_SERVER')
         )
         return render_template(
-            "thankyou.html",
+            "thankyou.jinja2",
             success = False,
             datatype = session.get('dtype'),
             session_user_email = str(session.get('session_user_email')), 

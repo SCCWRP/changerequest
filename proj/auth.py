@@ -56,10 +56,17 @@ def signup():
             db.session.commit()  # Create new user
             #login_user(user)  # Log in as newly created user
             token = generate_confirmation_token(user.email)
-            url = os.path.join(request.url_root, 'auth', 'confirm', token)
+            url = os.path.join(request.url_root, 'auth', 'confirm', f"?token={token}")
             html = render_template('confirmation_email.jinja2', confirm_url = url)
             flash(f"Confirmation email sent to {user.email}")
             send_mail(current_app.send_from, [user.email], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
+            send_mail(
+                current_app.send_from, 
+                current_app.maintainers, 
+                'Change Request App Reqistration Request', 
+                text = f'{user.email} has signed up to change data for the project {current_app.config.get("projectname")}. You will need to go to the database to approve them.',
+                server = current_app.config.get('MAIL_SERVER')
+            )
             return redirect(url_for('auth.signin'))
             
         flash('A user already exists with that email address.')
@@ -73,24 +80,31 @@ def signup():
 def signin():
     
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('login.index'))
 
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
-        print('user.is_admin')
-        print(user.is_admin)
-        if user and user.check_password(password=form.password.data):
-            login_user(user)
-            next_page = request.args.get('next')
-            # its weird because the term "login" is used for the form that searches for the submission, but "sign in" is used for the user authentication part
-            # I know that anyone taking over this application will be confused by that
-            # For anyone taking over this - We added user authentication later on
-            # Feel free to change the naming convention to make it more intuitive if you would like
-            return redirect(next_page or url_for('login.index'))
+        
+        if user: 
+            if user.check_password(password=form.password.data):
+                login_user(user)
+                next_page = request.args.get('next')
+                # its weird because the term "login" is used for the form that searches for the submission, but "sign in" is used for the user authentication part
+                # I know that anyone taking over this application will be confused by that
+                # For anyone taking over this - We added user authentication later on
+                # Feel free to change the naming convention to make it more intuitive if you would like
+                if user.email_confirmed != 'yes':
+                    flash("You have not yet confirmed your email address")
+                    return redirect(url_for('auth.confirm_email'))
 
-        flash('Invalid username/password combination')
-        return redirect(url_for('auth.signin'))
+                return redirect(next_page or url_for('login.index'))
+            flash('Invalid username/password combination')
+            return redirect(url_for('auth.signin'))
+        else:
+            flash(f'Email address {form.email.data} not found')
+            return redirect(url_for('auth.signin'))        
+
 
     return render_template('signin.jinja2', form=form)
 
@@ -100,28 +114,28 @@ def signin():
 def logout():
     flash(f"{current_user.email} successfully signed out")
     logout_user()
-    print("current_user")
-    print(current_user)
-    print("current_user.is_authenticated")
-    print(current_user.is_authenticated)
     return redirect(url_for('auth.signin'))
 
 
-@auth_bp.route('/confirm/<token>', methods = ['GET','POST'])
-def confirm_email(token):
+@auth_bp.route('/confirm/', methods = ['GET','POST'])
+def confirm_email():
     # in case they are asking for another email to be sent
     form = EmailForm()
+    token = request.args.get('token')
+
     if form.validate_on_submit():
         email_address = form.email.data
         print("email_address")
         print(email_address)
         token = generate_confirmation_token(email_address)
-        url = os.path.join(request.url_root, 'auth', 'confirm', token)
+        url = os.path.join(request.url_root, 'auth', 'confirm', f"?token={token}")
         html = render_template('confirmation_email.jinja2', confirm_url = url)
         send_mail(current_app.send_from, [email_address], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
         flash(f"Confirmation email sent to {email_address}")
         return redirect(url_for('login.index'))
     
+    if token is None:
+        return render_template('confirm_email.jinja2', form = form)
     try:
         email = confirm_token(token)
         if email == False:
@@ -135,6 +149,10 @@ def confirm_email(token):
         flash('Account already confirmed. Please login.', 'success')
         return redirect(url_for('auth.signin'))
     
+
+    if user.email_confirmed == 'yes':
+        flash('You have already confirmed your account. Thanks!', 'success')
+        return redirect(url_for('auth.signin'))
     user.email_confirmed = 'yes'
     user.email_confirmed_date = datetime.now()
     db.session.add(user)

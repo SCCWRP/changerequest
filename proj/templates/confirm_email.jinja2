@@ -21,7 +21,7 @@
                     </div>
                     {% endfor %}
                     <div class="container">
-                        <form id="sign-up-form" method="POST" action="{{request.script_root}}/auth/confirm/token">
+                        <form id="sign-up-form" method="POST" action="{{request.script_root}}/auth/confirm/">
                             {{form.csrf_token}}
                             
                             <div class="form-group">
@@ -48,8 +48,13 @@
                     <!-- <div class="container">
                         <a href="#">Forgot Password?</a>
                     </div> -->
-                    <div class="container">
-                        <a href="{{request.script_root}}/auth/signup">Sign up</a>
+                    <div class="container row">
+                        <div class="col-sm-6">
+                            <a href="{{url_for('auth.signup')}}">Sign up</a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="{{url_for('auth.signin')}}">Sign in</a>
+                        </div>
                     </div>
                 </div>
             </div>

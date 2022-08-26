@@ -259,7 +259,7 @@ WHERE objectid = {x['objectid']}"
 
     # After generating the update statements, generate the SQL for adding records
     print("After generating the update statements, generate the SQL for adding records")
-    added_records.objectid = f"sde.next_rowid('sde','{tablename}')"
+    #added_records.objectid = f"sde.next_rowid('sde','{tablename}')"
     added_records['created_user'] = "change request app"
     added_records['created_date'] = pd.Timestamp(session['sessionid'], unit = 's').strftime("%Y-%m-%d %H:%M:%S")
     for k in session.get('login_fields').keys():

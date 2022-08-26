@@ -138,9 +138,9 @@ else:
 # App depends on a schema called tmp existing in the database
 app.eng.execute("CREATE SCHEMA IF NOT EXISTS tmp;")
 app.eng.execute(
-    """
-    CREATE TABLE IF NOT EXISTS "sde"."change_history" (
-        "objectid" int4 NOT NULL,
+    f"""
+    CREATE TABLE IF NOT EXISTS "sde"."{os.environ.get('CHANGE_HISTORY_TABLE')}" (
+        "objectid" SERIAL,
         "original_record" json,
         "modified_record" json,
         "change_id" int4,
@@ -150,12 +150,7 @@ app.eng.execute(
         "change_date" timestamp(6),
         "change_processed" varchar(50) COLLATE "pg_catalog"."default",
         "login_fields" json
-        );
-
-    CREATE UNIQUE INDEX IF NOT EXISTS "r34_sde_rowid_uk" ON "sde"."change_history" USING btree (
-        "objectid" "pg_catalog"."int4_ops" ASC NULLS LAST
-    ) WITH (FILLFACTOR = 75);
-
+    )
     """
 )
 

@@ -41,7 +41,6 @@ def change_history_update(row, original_df, sessionid, submissionid, login_info,
     original_record = json.dumps(pd.DataFrame(original_record).to_dict('records')).replace("'","")
     sql = f"""
         (
-            sde.next_rowid('sde','{os.environ.get('CHANGE_HISTORY_TABLE')}'),
             '{original_record}',
             '{changed_record}',
             {sessionid},

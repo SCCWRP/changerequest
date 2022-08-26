@@ -81,7 +81,6 @@ def savechanges():
                 lambda row:
                 f"""
                     (
-                        sde.next_rowid('sde','{os.environ.get('CHANGE_HISTORY_TABLE')}'),
                         '[]',
                         '{json.dumps(row.to_dict()).replace("'","")}',
                         {sessionid},
@@ -98,7 +97,6 @@ def savechanges():
                 lambda row:
                 f"""
                     (
-                        sde.next_rowid('sde','{os.environ.get('CHANGE_HISTORY_TABLE')}'),
                         '{json.dumps(row.to_dict()).replace("'","")}',
                         '[]',
                         {sessionid},
@@ -115,7 +113,6 @@ def savechanges():
 
         change_history_sql = f"""
             INSERT INTO {os.environ.get('CHANGE_HISTORY_TABLE')} (
-                objectid,
                 original_record,
                 modified_record,
                 change_id,

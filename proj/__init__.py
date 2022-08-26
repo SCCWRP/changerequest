@@ -1,6 +1,7 @@
 import os, json
 import numpy as np
 import pandas as pd
+import psycopg2
 from flask import Flask, g
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -128,7 +129,7 @@ fix_custom_imports(CUSTOM_CHECKS_DIRECTORY)
 app.user_management = CUSTOM_CONFIG.get('user_management')
 # user management info
 if app.user_management.get('users_table'):
-    app.users_table = CUSTOM_CONFIG.get('users_table')
+    app.users_table = CUSTOM_CONFIG.get('user_management').get('users_table')
 else:
     print("Warning - no users table specified - falling back to default db_editors")
     app.users_table = 'db_editors'
@@ -136,6 +137,53 @@ else:
 
 # App depends on a schema called tmp existing in the database
 app.eng.execute("CREATE SCHEMA IF NOT EXISTS tmp;")
+app.eng.execute(
+    """
+    CREATE TABLE IF NOT EXISTS "sde"."change_history" (
+        "objectid" int4 NOT NULL,
+        "original_record" json,
+        "modified_record" json,
+        "change_id" int4,
+        "submissionid" int4,
+        "requesting_agency" varchar(50) COLLATE "pg_catalog"."default",
+        "requesting_person" varchar(50) COLLATE "pg_catalog"."default",
+        "change_date" timestamp(6),
+        "change_processed" varchar(50) COLLATE "pg_catalog"."default",
+        "login_fields" json
+        );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS "r34_sde_rowid_uk" ON "sde"."change_history" USING btree (
+        "objectid" "pg_catalog"."int4_ops" ASC NULLS LAST
+    ) WITH (FILLFACTOR = 75);
+
+    """
+)
+
+
+
+users_table_exists = len(pd.read_sql(f"SELECT table_name FROM information_schema.tables WHERE table_name = '{app.users_table}';", app.eng)) > 0
+if not users_table_exists:
+    app.eng.execute(
+        """
+        CREATE TABLE "sde"."db_editors" (
+            "email" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+            "password" varchar(255) COLLATE "pg_catalog"."default",
+            "organization" varchar(255) COLLATE "pg_catalog"."default",
+            "is_admin" varchar(3) COLLATE "pg_catalog"."default" DEFAULT 'no'::character varying,
+            "is_authorized" varchar(3) COLLATE "pg_catalog"."default" DEFAULT 'no'::character varying,
+            "id" int2 NOT NULL DEFAULT nextval('db_editors_user_id_seq'::regclass),
+            "firstname" varchar(50) COLLATE "pg_catalog"."default",
+            "lastname" varchar(50) COLLATE "pg_catalog"."default",
+            "signup_date" timestamp(6) DEFAULT now(),
+            "email_confirmed" varchar(3) COLLATE "pg_catalog"."default" DEFAULT 'no'::character varying,
+            "email_confirmed_date" timestamp(6)
+        );
+        ALTER TABLE "sde"."db_editors" ADD CONSTRAINT "db_editors_email_unique" UNIQUE ("email");
+        ALTER TABLE "sde"."db_editors" ADD CONSTRAINT "db_editors_pkey" PRIMARY KEY ("id");
+        """
+    )
+
+
 
 # import blueprints down here after custom imports are fixed
 # if we tried doing it before, it might have ModuleNotFound Errors

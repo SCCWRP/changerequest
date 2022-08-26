@@ -11,6 +11,7 @@ import { saveChanges } from "./save.js";
         event.preventDefault();
         event.stopPropagation();
         document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
+
         //const dropped_files = event.originalEvent.dataTransfer.files;
         const dropped_files = document.querySelector('[type=file]').files;
         const formData = new FormData();

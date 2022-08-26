@@ -330,11 +330,13 @@ def checkIntegers(dataframe, tablename, eng, meta, *args, output = None, **kwarg
                                 dataframe[col].apply(
                                     lambda x:
                                     False if pd.isnull(x)
-                                    else not ( (x >= -32768) & (x <= 32767) )
+                                    # coerce the values to integers since they show up as strings coming in from the browser
+                                    # if the datatype is bad, the datatypes check should catch it
+                                    else not ( (int(x) >= -32768) & (int(x) <= 32767) )
                                     if udt_name == 'int2'
-                                    else not ( (x >= -2147483648) & (x <= 2147483647) )
+                                    else not ( (int(x) >= -2147483648) & (int(x) <= 2147483647) )
                                     if udt_name == 'int4'
-                                    else not ( (x >= -9223372036854775808) & (x <= 9223372036854775807) )
+                                    else not ( (int(x) >= -9223372036854775808) & (int(x) <= 9223372036854775807) )
                                     if udt_name == 'int8'
                                     
                                     # if something else slips through the cracks, this will not allow it through by default

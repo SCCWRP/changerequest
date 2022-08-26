@@ -34,7 +34,7 @@ def download_submission():
         
         writer.save()
 
-    return send_file(excelpath, as_attachment = True, attachment_filename = filename)
+    return send_file(excelpath, as_attachment = True, download_name = filename)
 
 
 
@@ -44,7 +44,7 @@ def download_change_history():
     return send_file(
         session['comparison_path'],
         as_attachment = True,
-        attachment_filename = f"{session.get('sessionid')}_comparison.xlsx"
+        download_name = f"{session.get('sessionid')}_comparison.xlsx"
     )
 
 # # This will be for editing in browser

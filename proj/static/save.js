@@ -1,52 +1,57 @@
 import { addTips } from "./tooltip.js";
-
-// A handful of functions that handle html table 
-
 // Converts the html table displayed in the 'edit_submission' page to JSON that is formatted for to work like a pandas dataframe
-export const saveChanges = function() { 
-   
-   var table = document.querySelector("table");
-   var headers = [];
-   var dict = {};
+export const saveChanges = function() {
+    let table = document.querySelector('table#changes-display-table');
+    let rows = table.querySelectorAll('tr');
 
-   for (var i = 0; i < table.rows[0].cells.length; i++) {
-      headers[i] = table.rows[0].cells[i].innerHTML.toLowerCase().replace(/ /gi, '');
-   }
+    // show the loader gif
+    // script root is a global, defined in script tags in the head of the HTML document
+    document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
 
-   for (var i = 0; i < headers.length; i++) {
-      var data = [];
-      var header = headers[i];
-      for (let j = 1; j <= table.tBodies[0].rows.length; j++) {
-         data.push(table.rows[j].cells[i].innerHTML.replace("<br>", "<div>", "</div>", ""));
-      }
+    let tableJSON = Array.from(rows).slice(1).map(row => {
+        let record = new Object();
+        Array.from(row.querySelectorAll('td')).forEach(
+            cell => {
+                let colnameArray = Array.from(cell.classList).filter(cl => cl.includes('colname-'));
 
-      dict[header] = data;
-   }
+                // The table created by the app on the backend should be following a certain class naming convention
+                console.assert(
+                    colnameArray.length === 1, 
+                    "table cell class naming convention not followed - there should be exactly one class that says colname-<colname> so the table can be converted to a json more efficiently"
+                );
 
-   // show the loader gif
-   // script root is a global, defined in script tags in the head of the HTML document
-   document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
+                let colname = colnameArray[0].replace('colname-','');
+                
+                record[colname] = cell.innerText;
+                return ;
+            }
+        )
+        return record;
+    })
 
-   // Send the edited records to the server
-   fetch(`/${$SCRIPT_ROOT}/compare`, {
-      method: "post",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(dict)
-   })
-   .then(resp => {
-      //console.log(resp.json());
-      return resp.json()
-   })
-   .then(data => {
-      console.log(data);
-      document.querySelector(".records-display-inner-container").innerHTML = data.tbl;
-      formatDataTable(data);
-      addTips();
-      return data;
-   })
-   .catch(err => {
-      console.log(err);
-   })
+    tableJSON = JSON.stringify(tableJSON);
+
+    console.log(tableJSON);
+
+     // Send the edited records to the server
+    fetch(`/${$SCRIPT_ROOT}/compare`, {
+        method: "post",
+        headers: { "Content-Type": "application/json" },
+        body: tableJSON
+    })
+    .then(resp => {
+        //console.log(resp.json());
+        return resp.json()
+    })
+    .then(data => {
+        console.log(data);
+        document.querySelector(".records-display-inner-container").innerHTML = data.tbl;
+        formatDataTable(data);
+        addTips();
+        return data;
+    })
+    .catch(err => {
+        console.log(err);
+    })
 
 }
-

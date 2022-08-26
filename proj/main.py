@@ -66,9 +66,9 @@ def main():
 
     else:
         print("No file given")
-        
-        df_modified = pd.DataFrame(request.get_json())
+        df_modified = pd.DataFrame.from_records(request.get_json())
         df_modified.replace('', np.NaN, inplace = True)
+        
         
     # Remember tablenames is a global variable of key value pairs (dictionary)
     # with keys being the datatype and the values being the corresponding table(s)
@@ -371,7 +371,7 @@ WHERE objectid = {x['objectid']}"
 
 
     return jsonify(
-        tbl = htmltable(modified_records), 
+        tbl = htmltable(modified_records, _id = "changes-display-table"), 
         addtbl = htmltable(added_records),
         deltbl = htmltable(deleted_records), 
         changed_indices = changed_indices, 

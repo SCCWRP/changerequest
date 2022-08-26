@@ -1,6 +1,6 @@
 import pandas as pd
 
-def htmltable(df, id = None, cssclass = None, enumeraterows = True):
+def htmltable(df, _id = None, cssclass = None, enumeraterows = True):
     '''
         df is a pandas dataframe, 
         id is a css id you want to give to the table, 
@@ -22,7 +22,7 @@ def htmltable(df, id = None, cssclass = None, enumeraterows = True):
     </table>    
     """.format(
         # add in the id
-        f" id = {id}" if id else "",
+        f" id = {_id}" if _id else "",
 
         # add the class
         f" class = {cssclass}" if cssclass else "",

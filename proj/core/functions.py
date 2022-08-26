@@ -82,7 +82,7 @@ def check_precision(x, precision):
     if pd.isnull(precision):
         return True
 
-    x = abs(x)
+    x = abs(x) if isinstance(x, (int, float)) else abs(float(x))
     left = int(log10(x)) + 1 if x > 0 else 1
     frac_part = abs(int(re.sub("\d*\.","",str(x)))) if '.' in str(x) else 0
     if frac_part > 0:

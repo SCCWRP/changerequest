@@ -137,6 +137,10 @@ else:
 
 # App depends on a schema called tmp existing in the database
 app.eng.execute("CREATE SCHEMA IF NOT EXISTS tmp;")
+
+# The application will need a change history table
+# it will not be a geodatabase table, but rather just a regular table
+# the objectid column will be a serial integer
 app.eng.execute(
     f"""
     CREATE TABLE IF NOT EXISTS "sde"."{os.environ.get('CHANGE_HISTORY_TABLE')}" (

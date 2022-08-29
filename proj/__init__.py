@@ -7,6 +7,10 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from sqlalchemy import create_engine
+
+if not os.path.exists(os.path.join(os.getcwd(), 'proj', 'custom', '__init__.py')):
+    open(os.path.join(os.getcwd(), 'proj', 'custom', '__init__.py'), 'w').close()
+
 from .custom.functions import add_custom_checks_function, fix_custom_imports
 from .custom.exceptions import ConfigurationError
 

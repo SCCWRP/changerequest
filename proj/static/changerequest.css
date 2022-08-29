@@ -77,7 +77,11 @@ table {
 .infotab-header {
     cursor: pointer;
     background-color:azure;
-    border: 1px solid rgba(110, 110, 110, 0.5)
+    border: 1px solid rgba(110, 110, 110, 0.4);
+    border-radius: 16rem;
+    padding: 0.3rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
 
 .infotab-header.active {
@@ -87,4 +91,16 @@ table {
 
 ul.errors {
     list-style-type: none;
+}
+
+.card.outer-card {
+    border-bottom: none;
+}
+
+.container.main-container {
+    margin: auto;
+    width: 100%;
+}
+#login-form-container {
+    width: 100%;
 }

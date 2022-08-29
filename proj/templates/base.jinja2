@@ -10,12 +10,12 @@
             $SCRIPT_ROOT = $SCRIPT_ROOT.replace('/','');
         </script>
         <link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSN1KajqxT6Orr6rQ1jb4BpLDf3wUnunW9ZvWwy_WWFrg&amp;s">
-        <link rel="stylesheet" href="{{url_for('static',filename='changerequest.css')}}" />
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+        <link rel="stylesheet" href="{{url_for('static',filename='changerequest.css')}}" />
         {% endblock %}
     </head>
     <body>
-        <div class="card">
+        <div class="card outer-card">
             {% block session_user_info %}
             {% if current_user.is_authenticated %}
             <div class="card-header login-session-info-header">

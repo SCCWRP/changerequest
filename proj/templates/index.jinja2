@@ -6,82 +6,80 @@
     <div class="container main-container">
         <br>
             <!--bootstrap-->
-            <div class="container">
                 {# <div class="d-flex justify-content-center h-100"> #}
-                    <div id="login-form-container">
-                        <div class="card">
-                            <div class="card-header">
-                                <h4>Choose a Datatype</h4>
-                                <nav class="navbar navbar-light bg-light navbar-top" id="main-top-navbar">
-                                    {% for dtype in dtypes.keys() %}
-                                        {% if loop.index == 1 %}
-                                        <div class="nav-item col-sm tab-header infotab-header active" id="{{dtype}}-header" data-dtype="{{dtype}}">
-                                            {{dtypes[dtype]['human_friendly_dtype_name']}}
-                                        </div>
-                                        {% else %}
-                                        <div class="nav-item col-sm tab-header infotab-header" id="{{dtype}}-header" data-dtype="{{dtype}}">
-                                            {{dtypes[dtype]['human_friendly_dtype_name']}}
-                                        </div>
-                                        {% endif %}
-                                    {% endfor %}
-                                </nav>
-                            </div>
-                            <div class="card-body">
-                            {% for dtype in dtypes.keys() %}
-                                {% if loop.index == 1 %}
-                                <div class="form-container" id="{{dtype}}-form-container" data-dtype="{{dtype}}">
-                                {% else %}
-                                <div class="form-container hidden" id="{{dtype}}-form-container" data-dtype="{{dtype}}">
-                                {% endif %}
-                                    <form class="fetch-submission-form" id="{{dtype}}-form" data-dtype="{{dtype}}">
-                                        
-                                        {% for field in dtypes[dtype]['login_fields'] %}
-                                        <div class="input-group form-group">
-                                            <div class = "{{field.fieldtype}}-form-container">
-                                                <label for="{{field.fieldname}}">{% if field.fieldlabel %}{{field.fieldlabel}}{% else %}{{field.fieldname}}{% endif %}:</label>
-                                                <{{field.fieldtype}} name="{{field.fieldname}}" id="{{dtype}}-{{field.fieldname}}-{{field.fieldtype}}" class="login-field-{{field.fieldtype}} login-field-element {{dtype}}-login-field-{{field.fieldtype}} {{dtype}}-login-field-element" data-dtype="{{dtype}}" data-index="{{loop.index}}">
-                                                {% if field.fieldtype == 'select' %}
-                                                </{{field.fieldtype}}>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        {% endfor %}
-                                        <div class="input-group form-group">
-                                            <div class = "select-form-container">
-                                                <label for="submissionid">Submission ID:</label>
-                                                <select name="submissionid" id="{{dtype}}-submissionid-select" class="login-field-select {{dtype}}-login-field-select {{dtype}}-login-field-element" data-dtype="{{dtype}}">
-                                                </select>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="input-group form-group">
-                                            <div class = "select-form-container">
-                                                <label for="tablename">Table you will be editing:</label>
-                                                <select name="tablename" id="{{dtype}}-tablename-select" class="login-field-select {{dtype}}-login-field-select {{dtype}}-login-field-element" data-dtype="{{dtype}}">
-                                                    {% for tbl in dtypes[dtype]['tables']%}
-                                                    <option value="{{tbl}}">{{tbl}}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        
-                                        
-                                        <!--<div class="form-group">
-                                            <button id="{{dtype}}-submission-preview" class="btn btn-info btn-submission-preview" data-dtype="{{dtype}}">Preview Submission</button>
-                                        </div> -->
-
-                                        <div class="form-group">
-                                            <button data-dtype="{{dtype}}" id="{{dtype}}-form-submit" class="btn login_btn">Go</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            {% endfor %}
-                            </div>
+                    <div class="card" id="login-form-container">
+                        <div class="card-header">
+                            <h4>Choose a Datatype</h4>
+                            {# <nav class="navbar navbar-light bg-light navbar-top" id="main-top-navbar"> #}
+                            <nav class="navbar navbar-top row" id="main-top-navbar">
+                                {% for dtype in dtypes.keys() %}
+                                    {% if loop.index == 1 %}
+                                    <div class="tab-header infotab-header active" id="{{dtype}}-header" data-dtype="{{dtype}}">
+                                        {{dtypes[dtype]['human_friendly_dtype_name']}}
+                                    </div>
+                                    {% else %}
+                                    <div class="tab-header infotab-header" id="{{dtype}}-header" data-dtype="{{dtype}}">
+                                        {{dtypes[dtype]['human_friendly_dtype_name']}}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </nav>
                         </div>
+                        <div class="card-body">
+                        {% for dtype in dtypes.keys() %}
+                            {% if loop.index == 1 %}
+                            <div class="form-container" id="{{dtype}}-form-container" data-dtype="{{dtype}}">
+                            {% else %}
+                            <div class="form-container hidden" id="{{dtype}}-form-container" data-dtype="{{dtype}}">
+                            {% endif %}
+                                <form class="fetch-submission-form" id="{{dtype}}-form" data-dtype="{{dtype}}">
+                                    
+                                    {% for field in dtypes[dtype]['login_fields'] %}
+                                    <div class="input-group form-group">
+                                        <div class = "{{field.fieldtype}}-form-container">
+                                            <label for="{{field.fieldname}}">{% if field.fieldlabel %}{{field.fieldlabel}}{% else %}{{field.fieldname}}{% endif %}:</label>
+                                            <{{field.fieldtype}} name="{{field.fieldname}}" id="{{dtype}}-{{field.fieldname}}-{{field.fieldtype}}" class="login-field-{{field.fieldtype}} login-field-element {{dtype}}-login-field-{{field.fieldtype}} {{dtype}}-login-field-element" data-dtype="{{dtype}}" data-index="{{loop.index}}">
+                                            {% if field.fieldtype == 'select' %}
+                                            </{{field.fieldtype}}>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    <div class="input-group form-group">
+                                        <div class = "select-form-container">
+                                            <label for="submissionid">Submission ID:</label>
+                                            <select name="submissionid" id="{{dtype}}-submissionid-select" class="login-field-select {{dtype}}-login-field-select {{dtype}}-login-field-element" data-dtype="{{dtype}}">
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="input-group form-group">
+                                        <div class = "select-form-container">
+                                            <label for="tablename">Table you will be editing:</label>
+                                            <select name="tablename" id="{{dtype}}-tablename-select" class="login-field-select {{dtype}}-login-field-select {{dtype}}-login-field-element" data-dtype="{{dtype}}">
+                                                {% for tbl in dtypes[dtype]['tables']%}
+                                                <option value="{{tbl}}">{{tbl}}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    
+                                    
+                                    <!--<div class="form-group">
+                                        <button id="{{dtype}}-submission-preview" class="btn btn-info btn-submission-preview" data-dtype="{{dtype}}">Preview Submission</button>
+                                    </div> -->
+
+                                    <div class="form-group">
+                                        <button data-dtype="{{dtype}}" id="{{dtype}}-form-submit" class="btn login_btn">Go</button>
+                                    </div>
+                                </form>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    
                     </div>
                 {# </div> #}
-            </div>
             <!-- end bootstrap-->
 
         </div>

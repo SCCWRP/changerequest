@@ -57,9 +57,15 @@ def signup():
             #login_user(user)  # Log in as newly created user
             token = generate_confirmation_token(user.email)
             url = os.path.join(request.url_root, 'auth', 'confirm', f"?token={token}")
-            html = render_template('confirmation_email.jinja2', confirm_url = url)
+            html = render_template('confirmation_email.jinja2', confirm_url = url, projectname = current_app.config.get("projectname"))
             flash(f"Confirmation email sent to {user.email}")
-            send_mail(current_app.send_from, [user.email], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
+            send_mail(
+                current_app.send_from, 
+                [user.email], 
+                f'{current_app.config.get("projectname")} Change Request App Email Confirmation', 
+                html = html, 
+                server = current_app.config.get('MAIL_SERVER')
+            )
             send_mail(
                 current_app.send_from, 
                 current_app.maintainers, 

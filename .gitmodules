@@ -1,3 +1,0 @@
-[submodule "proj/custom"]
-	path = proj/custom
-	url = git@github.com:SCCWRP/smc-intercal-custom.git

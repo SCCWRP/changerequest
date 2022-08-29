@@ -180,7 +180,7 @@ if not users_table_exists:
             "organization" varchar(255) COLLATE "pg_catalog"."default",
             "is_admin" varchar(3) COLLATE "pg_catalog"."default" DEFAULT 'no'::character varying,
             "is_authorized" varchar(3) COLLATE "pg_catalog"."default" DEFAULT 'no'::character varying,
-            "id" int2 NOT NULL DEFAULT nextval('db_editors_user_id_seq'::regclass),
+            "id" SERIAL,
             "firstname" varchar(50) COLLATE "pg_catalog"."default",
             "lastname" varchar(50) COLLATE "pg_catalog"."default",
             "signup_date" timestamp(6) DEFAULT now(),

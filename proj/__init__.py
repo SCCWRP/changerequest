@@ -8,6 +8,16 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from sqlalchemy import create_engine
 from .custom.functions import add_custom_checks_function, fix_custom_imports
+from .custom.exceptions import ConfigurationError
+
+if os.environ.get("FLASK_APP_SECRET_KEY") is None:
+    raise ConfigurationError("No secret key found among the environment variables")
+if os.environ.get("FLASK_APP_SECURITY_PASSWORD_SALT") is None:
+    raise ConfigurationError("No security password salt found among the environment variables")
+if os.environ.get("CHANGE_HISTORY_TABLE") is None:
+    raise ConfigurationError("No change history table found among the environment variables")
+if os.environ.get("DB_CONNECTION_STRING") is None:
+    raise ConfigurationError("No database connection string found among the environment variables")
 
 
 CUSTOM_CONFIG_PATH = os.path.join(os.getcwd(), 'proj', 'config')

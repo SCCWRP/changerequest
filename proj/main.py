@@ -120,6 +120,8 @@ def main():
     badrows = set([r['row_number'] for e in errors for r in e['rows']])
     errors_dataframe = df_modified[df_modified.index.isin([n - 1 for n in badrows])]
     good_dataframe = df_modified[~df_modified.index.isin([n - 1 for n in badrows])]
+    print('good_dataframe')
+    print(good_dataframe)
     
     goodrecords_sql = \
         """
@@ -201,6 +203,8 @@ def main():
     added_records, deleted_records, modified_records, changed_indices, original_data = \
         compare(df_origin, df_modified, pkey_columns, current_app.immutable_fields)
     
+    print("Done with Comparison routine")
+
 
 
     # Need to make sure the objectid's are integers, but not the added records, since those have next_rowid
@@ -211,6 +215,7 @@ def main():
     
     # distinguish an accepted change from a rejected change based on errors
     # its a rejected change if we find that change in the errors
+    print("# distinguish an accepted change from a rejected change based on errors")
     rejected_changes = [
         x for x in changed_indices if 
         (x['rownumber'], x['colname']) in [(r['row_number'], e['columns']) for e in errors for r in e['rows']]
@@ -222,6 +227,7 @@ def main():
     # --  Generate SQL statements -- #
     ##################################
 
+    print("# Make a dataframe so we can groupby objectid and tablename")
     # Make a dataframe so we can groupby objectid and tablename
     # hislog = History Log
     hislog = pd.DataFrame({
@@ -230,32 +236,45 @@ def main():
         'changed_cols' :   [item['colname'] for item in accepted_changes],
         'newvalue'     :   [modified_records.iloc[item['rownumber'] - 1, modified_records.columns.get_loc(f"{item['colname']}")] for item in accepted_changes]   
     })
-
-    # 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map
-    for col in hislog.columns:
-        hislog[col] = hislog[col].apply(lambda x: str(x))
     
-    hislog = hislog \
-        .groupby(["objectid","tablename"]) \
-        .apply(
-            # Set to NULL if they deleted the value
-            lambda subdf: " , ".join(
-                f"{x[0]} = '{x[1]}'" if ( (x[1] != '') and (not pd.isnull(x[1])) ) else f"{x[0]} = NULL" for x in zip(subdf.changed_cols, subdf.newvalue)
-            )
-        ) \
-        .reset_index() \
-        .rename(columns = {0: 'changes'}) \
-        .apply(
-            lambda x: 
-            f"update {x['tablename']} \
-set {x['changes']}, \
-last_edited_date = '{pd.Timestamp(session['sessionid'], unit = 's').strftime('%Y-%m-%d %H:%M:%S')}', \
-last_edited_user = '{session['session_user_email']}' \
-WHERE objectid = {x['objectid']}"
-            , axis=1
-        ) 
+    if not hislog.empty:
 
-    hislog = hislog.tolist() if isinstance(hislog, pd.Series) else []
+        print("# 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map")
+        # 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map
+        for col in hislog.columns:
+            hislog[col] = hislog[col].apply(lambda x: str(x))
+        
+        print("history log")
+        hislog = hislog \
+            .groupby(["objectid","tablename"]) \
+            .apply(
+                # Set to NULL if they deleted the value
+                lambda subdf: " , ".join(
+                    f"{x[0]} = '{x[1]}'" if ( (x[1] != '') and (not pd.isnull(x[1])) ) else f"{x[0]} = NULL" for x in zip(subdf.changed_cols, subdf.newvalue)
+                )
+            ) \
+            .reset_index() \
+            .rename(columns = {0: 'changes'}) \
+            .apply(
+                lambda x: 
+                f"update {x['tablename']} \
+    set {x['changes']}, \
+    last_edited_date = '{pd.Timestamp(session['sessionid'], unit = 's').strftime('%Y-%m-%d %H:%M:%S')}', \
+    last_edited_user = '{session['session_user_email']}' \
+    WHERE objectid = {x['objectid']}"
+                , axis=1
+            )
+        
+        print("hislog")
+        print(hislog)
+
+        hislog = hislog.tolist() if isinstance(hislog, pd.Series) else []
+    else:
+        hislog = []
+
+    print("hislog")
+    print(hislog)
+    
 
     # After generating the update statements, generate the SQL for adding records
     print("After generating the update statements, generate the SQL for adding records")

@@ -132,7 +132,7 @@ def sessiondata():
                 SELECT * FROM sde.{tablename}  
                 WHERE submissionid = {session.get('submissionid')}
             );
-        SELECT {",".join(df_cols)} FROM tmp.{session['origin_tablename']};
+        SELECT {",".join(f"tmp.{session['origin_tablename']}.{c}" for c in df_cols)} FROM tmp.{session['origin_tablename']};
         """
     print(tmp_sql)
 
@@ -147,6 +147,7 @@ def sessiondata():
     # HOWEVER. It works now, so im not going to mess with it.
     sqlresult = eng.execute(tmp_sql)
     df = pd.DataFrame(sqlresult.fetchall())
+
 
     print('df')
     print(df)
@@ -166,5 +167,19 @@ def sessiondata():
     # write to excel for user to download
     with pd.ExcelWriter(original_data_filepath, engine = 'xlsxwriter', options = {'strings_to_formulas':False}) as writer:
         df.to_excel(writer, index=False)
+
+
+    # Remove Not NULL constraints from the tmp tables, at least for the immutable fields
+    # It doesnt matter if those fields get populated in the tmp tables
+    # we need to do this with psycopg sql injection prevention and all that
+    rmsql = [
+        f"""
+            ALTER TABLE tmp.{session['modified_tablename']} ALTER COLUMN {col} DROP NOT NULL;
+            ALTER TABLE tmp.{session['origin_tablename']} ALTER COLUMN {col} DROP NOT NULL;
+        """
+        for col in current_app.immutable_fields
+    ]
+    eng.execute(';'.join(rmsql))
+
 
     return jsonify(message = 'Success')

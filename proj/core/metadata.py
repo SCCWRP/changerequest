@@ -10,6 +10,8 @@ def checkDataTypes(dataframe, tablename, eng, meta, *args, output = None, **kwar
     ret = []
     for col in dataframe.columns: 
         if col not in current_app.system_fields:
+            print("meta")
+            print(meta)
             # using the meta dataframe we can get the python datatype
             dtype = meta.iloc[
                 meta[

@@ -10,3 +10,6 @@ from .bruv_custom import bruv
 from .crabmeta_custom import crabmeta
 from .nutrients_custom import nutrients
 from .savpctcover_custom import savpctcover
+from .fishmeta_custom import fishmeta
+from .fishabundance_custom import fishabundance
+from .fishlength_custom import fishlength

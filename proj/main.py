@@ -32,9 +32,9 @@ import os, sys
 }
 """
 
-#############################################################################################
-# These routes are various API's that we are setting up for javascript to fetch information #
-#############################################################################################
+###############################################################
+# These routes are set up for javascript to fetch information #
+###############################################################
 
 comparison = Blueprint('comparison', __name__)
 @comparison.route("/compare", methods = ['GET', 'POST'])

@@ -1,7 +1,7 @@
 import { addTips } from "./tooltip.js";
 // Converts the html table displayed in the 'edit_submission' page to JSON that is formatted for to work like a pandas dataframe
 export const saveChanges = function() {
-    let table = document.querySelector('table#changes-display-table');
+    let table = document.querySelector('div.records-display-inner-container table');
     let rows = table.querySelectorAll('tr');
 
     // show the loader gif

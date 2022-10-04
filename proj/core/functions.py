@@ -242,3 +242,6 @@ def get_badrows(df_badrows):
         ) \
         .values
     ]
+
+def coalesce(val, default = ''):
+    return val if not pd.isnull(val) else default

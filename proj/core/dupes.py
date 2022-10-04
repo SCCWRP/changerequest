@@ -1,6 +1,6 @@
 import re
 from pandas import isnull, read_sql, concat
-from .functions import checkData, get_primary_key
+from .functions import checkData, coalesce, get_primary_key
 from flask import current_app
 
 # All the functions for the Core Checks should have the dataframe and the datatype as the two main arguments
@@ -32,7 +32,7 @@ def checkDuplicates(dataframe, tablename, eng, *args, output = None, **kwargs):
             {
                 'row_number': rownum,
                 'objectid': objid,
-                'value': val,
+                'value': coalesce(val),
                 'message': msg
             }
             for rownum, objid, val, msg in

@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 from math import log10
-from .functions import checkData, convert_dtype, fetch_meta, check_precision, check_length, check_scale
+from .functions import checkData, convert_dtype, fetch_meta, check_precision, check_length, check_scale, coalesce
 from flask import current_app
 
 
@@ -32,7 +32,7 @@ def checkDataTypes(dataframe, tablename, eng, meta, *args, output = None, **kwar
                         {
                             'row_number': rownum,
                             'objectid': objid,
-                            'value': val,
+                            'value': coalesce(val),
                             'message': msg
                         } 
                         for rownum, objid, val, msg in
@@ -100,7 +100,7 @@ def checkPrecision(dataframe, tablename, eng, meta, *args, output = None, **kwar
                         {
                             'row_number': rownum,
                             'objectid': objid,
-                            'value': val,
+                            'value': coalesce(val),
                             'message': msg
                         } 
                         for rownum, objid, val, msg in
@@ -159,7 +159,7 @@ def checkScale(dataframe, tablename, eng, meta, *args, output = None, **kwargs):
                         {
                             'row_number': rownum,
                             'objectid': objid,
-                            'value': val,
+                            'value': coalesce(val),
                             'message': msg
                         } 
                         
@@ -224,7 +224,7 @@ def checkLength(dataframe, tablename, eng, meta, *args, output = None, **kwargs)
                         {
                             'row_number': rownum,
                             'objectid': objid,
-                            'value': val,
+                            'value': coalesce(val),
                             'message': msg
                         }
                         for rownum, objid, val, msg in
@@ -266,7 +266,7 @@ def checkNotNull(dataframe, tablename, eng, meta, *args, output = None, **kwargs
                 {
                     'row_number': rownum,
                     'objectid': objid,
-                    'value': val,
+                    'value': coalesce(val),
                     'message': msg
                 }
                 for rownum, objid, val, msg in
@@ -324,7 +324,7 @@ def checkIntegers(dataframe, tablename, eng, meta, *args, output = None, **kwarg
                             {
                                 'row_number': rownum,
                                 'objectid': objid,
-                                'value': val,
+                                'value': coalesce(val),
                                 'message': msg
                             }
                             for rownum, objid, val, msg in

@@ -1,5 +1,5 @@
 import pandas as pd
-from .functions import checkData, get_badrows
+from .functions import checkData, get_badrows, coalesce
 from flask import current_app, session, request
 
 # q is a multiprocessing.Queue()
@@ -53,7 +53,7 @@ def checkLookUpLists(dataframe, tablename, eng, dtype, *args, output = None, **k
                 {
                     'row_number': rownum,
                     'objectid': objid,
-                    'value': val if (not pd.isnull(val)) else str(val),
+                    'value': coalesce(val),
                     'message': msg
                 } 
                 for rownum, objid, val, msg in

@@ -122,21 +122,43 @@ def sessiondata():
     # 8/12/2022 - I think for the SMC database, it will be best for us to back populate the submission id's for the sake of tracking data and for this change application - Robert
     
 
-    tmp_sql = f"""
-        CREATE TABLE IF NOT EXISTS tmp.{session['modified_tablename']} (LIKE sde.{tablename} INCLUDING ALL);
-        CREATE TABLE IF NOT EXISTS tmp.{session['origin_tablename']} (LIKE sde.{tablename} INCLUDING ALL);
-        DELETE FROM tmp.{session['origin_tablename']};
-        DELETE FROM tmp.{session['modified_tablename']};
+    eng.execute(
+        f"""
+            CREATE TABLE IF NOT EXISTS tmp.{session['modified_tablename']} (LIKE sde.{tablename} INCLUDING ALL);
+            CREATE TABLE IF NOT EXISTS tmp.{session['origin_tablename']} (LIKE sde.{tablename} INCLUDING ALL);
+            DELETE FROM tmp.{session['origin_tablename']};
+            DELETE FROM tmp.{session['modified_tablename']};
+        """
+    )
+
+    # Remove Not NULL constraints from the tmp tables, at least for the immutable fields
+    # It doesnt matter if those fields get populated in the tmp tables
+    # we need to do this with psycopg sql injection prevention and all that
+    rmsql = [
+        f"""
+            ALTER TABLE tmp.{session['modified_tablename']} ALTER COLUMN {col} DROP NOT NULL;
+            ALTER TABLE tmp.{session['origin_tablename']} ALTER COLUMN {col} DROP NOT NULL;
+        """
+        for col in current_app.immutable_fields
+    ]
+
+    # objectid cant be part of the system fields - it must be preserved during the comparison
+    # Its NOT NULL constraint must be dropped, because records getting added will not have objectid's
+    rmsql.append(f"""ALTER TABLE tmp.{session['modified_tablename']} ALTER COLUMN objectid DROP NOT NULL;""")
+
+    eng.execute(';'.join(rmsql))
+
+    eng.execute(
+        f"""
         INSERT INTO tmp.{session['origin_tablename']}
             (
                 SELECT * FROM sde.{tablename}  
                 WHERE submissionid = {session.get('submissionid')}
             );
-        SELECT {",".join(f"tmp.{session['origin_tablename']}.{c}" for c in df_cols)} FROM tmp.{session['origin_tablename']};
         """
-    print(tmp_sql)
+    )
 
-    
+
     
     # We embedded the SQL which selects their submission into the same string that creates, and updates the "original data" temp table
     # Reason being, we ran it separately with pandas read sql after, got an error saying the table didnt exist
@@ -145,7 +167,7 @@ def sessiondata():
     # However, come to find out, it is most likely simply due to the fact that i did not put the "tmp." schema name in front of the table.....
     # -__-
     # HOWEVER. It works now, so im not going to mess with it.
-    sqlresult = eng.execute(tmp_sql)
+    sqlresult = eng.execute(f"""SELECT {",".join(f"tmp.{session['origin_tablename']}.{c}" for c in df_cols)} FROM tmp.{session['origin_tablename']};""")
     df = pd.DataFrame(sqlresult.fetchall())
 
 
@@ -168,18 +190,6 @@ def sessiondata():
     with pd.ExcelWriter(original_data_filepath, engine = 'xlsxwriter', options = {'strings_to_formulas':False}) as writer:
         df.to_excel(writer, index=False)
 
-
-    # Remove Not NULL constraints from the tmp tables, at least for the immutable fields
-    # It doesnt matter if those fields get populated in the tmp tables
-    # we need to do this with psycopg sql injection prevention and all that
-    rmsql = [
-        f"""
-            ALTER TABLE tmp.{session['modified_tablename']} ALTER COLUMN {col} DROP NOT NULL;
-            ALTER TABLE tmp.{session['origin_tablename']} ALTER COLUMN {col} DROP NOT NULL;
-        """
-        for col in current_app.immutable_fields
-    ]
-    eng.execute(';'.join(rmsql))
 
 
     return jsonify(message = 'Success')

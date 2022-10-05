@@ -31,7 +31,7 @@ def checkDataTypes(dataframe, tablename, eng, meta, *args, output = None, **kwar
                     badrows = [
                         {
                             'row_number': rownum,
-                            'objectid': objid,
+                            'objectid': coalesce(objid, -220),
                             'value': coalesce(val),
                             'message': msg
                         } 
@@ -99,7 +99,7 @@ def checkPrecision(dataframe, tablename, eng, meta, *args, output = None, **kwar
                     badrows = [
                         {
                             'row_number': rownum,
-                            'objectid': objid,
+                            'objectid': coalesce(objid, -220),
                             'value': coalesce(val),
                             'message': msg
                         } 
@@ -158,7 +158,7 @@ def checkScale(dataframe, tablename, eng, meta, *args, output = None, **kwargs):
                     badrows = [
                         {
                             'row_number': rownum,
-                            'objectid': objid,
+                            'objectid': coalesce(objid, -220),
                             'value': coalesce(val),
                             'message': msg
                         } 
@@ -223,7 +223,7 @@ def checkLength(dataframe, tablename, eng, meta, *args, output = None, **kwargs)
                     badrows = [
                         {
                             'row_number': rownum,
-                            'objectid': objid,
+                            'objectid': coalesce(objid, -220),
                             'value': coalesce(val),
                             'message': msg
                         }
@@ -265,7 +265,7 @@ def checkNotNull(dataframe, tablename, eng, meta, *args, output = None, **kwargs
             badrows = [
                 {
                     'row_number': rownum,
-                    'objectid': objid,
+                    'objectid': coalesce(objid, -220),
                     'value': coalesce(val),
                     'message': msg
                 }
@@ -323,7 +323,7 @@ def checkIntegers(dataframe, tablename, eng, meta, *args, output = None, **kwarg
                         badrows = [
                             {
                                 'row_number': rownum,
-                                'objectid': objid,
+                                'objectid': coalesce(objid, -220),
                                 'value': coalesce(val),
                                 'message': msg
                             }

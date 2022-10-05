@@ -120,6 +120,7 @@ def signin():
 def logout():
     flash(f"{current_user.email} successfully signed out")
     logout_user()
+    session.clear()
     return redirect(url_for('auth.signin'))
 
 

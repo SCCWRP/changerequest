@@ -11,6 +11,8 @@ def compare(df_origin, df_modified, pkey_columns, immutable_cols = []):
     print("### non_pkey_columns simply refers to the columns that we are comparing. Everything except objectid")
     # non_pkey_columns simply refers to the columns that we are comparing. Everything except objectid
     non_pkey_columns = [col for col in df_origin.columns if col not in pkey_columns]
+    print("non_pkey_columns")
+    print(non_pkey_columns)
 
     print("### iterate through the rows of the merged dataframe to compare the values")
     # iterate through the rows of the merged dataframe to compare the values
@@ -92,13 +94,17 @@ def compare(df_origin, df_modified, pkey_columns, immutable_cols = []):
     print("### Get the merged_df back containing records with the same primary keys. We want to compare if there are any changes that are made by the users. ")
     # Get the merged_df back containing records with the same primary keys. We want to compare if there are any changes that are made by the users. 
     modified_records = merged_df[merged_df['change_type'] == 'modification'] \
-        .drop(columns = ['change_type']) \
-        .reset_index(drop = True)
+        .drop(columns = ['change_type']) #\
+        #.reset_index(drop = True)
     
 
     print("### create changed indices, a list of tuples indicating which cells got modified")
     # create changed indices, a list of tuples indicating which cells got modified
     # [(rownumber, column_name), (rownumber, column_name)]
+    print("modified_records")
+    print(modified_records)
+    print(modified_records.columns)
+
     changed_indices = []
     modified_records.apply(
         lambda x:

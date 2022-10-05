@@ -69,6 +69,11 @@ def main():
         df_modified = pd.DataFrame.from_records(request.get_json())
         df_modified.replace('', np.NaN, inplace = True)
         
+    # df_modified needs to have the object id's filled in
+    print("# df_modified needs to have the object id's filled in")
+    maxobjid = df_modified.objectid.max()
+    df_modified.objectid = df_modified.apply(lambda row: row.name + maxobjid if pd.isnull(row.objectid) else row.objectid, axis = 1)
+    df_modified.objectid = df_modified.objectid.astype(int)
         
     # Remember tablenames is a global variable of key value pairs (dictionary)
     # with keys being the datatype and the values being the corresponding table(s)
@@ -205,6 +210,12 @@ def main():
     
     print("Done with Comparison routine")
 
+    print("added_records")
+    print(added_records)
+    print("deleted_records")
+    print(deleted_records)
+    print("modified_records")
+    print(modified_records)
 
 
     # Need to make sure the objectid's are integers, but not the added records, since those have next_rowid
@@ -285,6 +296,7 @@ def main():
         added_records[f'login_{k}'] = session.get('login_fields').get(k)
     added_records['last_edited_user'] = session["session_user_email"]
     added_records['last_edited_date'] = pd.Timestamp(session['sessionid'], unit = 's').strftime("%Y-%m-%d %H:%M:%S")
+    added_records['objectid'] = f"""sde.next_rowid('sde','{tablename}')"""
 
     # If for some reason, the email wasnt part of the login form, then the login email wont be in the added records dataframe
     # Here we make sure the record has the original login_email for the submission

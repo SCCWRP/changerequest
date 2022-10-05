@@ -15,6 +15,7 @@ function formatDataTable (data) {
     })
     data.rejected_changes.map(kv => {
         // kv signifying that each element of the array is a key value pair
+
         
         /* We added one in the changed indices variable, for purposes of highlighting the excel file.
         Here we make it go back to what it "should" be */

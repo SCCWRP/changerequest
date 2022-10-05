@@ -52,7 +52,7 @@ def checkLookUpLists(dataframe, tablename, eng, dtype, *args, output = None, **k
             badrows = [
                 {
                     'row_number': rownum,
-                    'objectid': objid,
+                    'objectid': coalesce(objid, -220),
                     'value': coalesce(val),
                     'message': msg
                 } 

@@ -210,17 +210,15 @@ def main():
     
     print("Done with Comparison routine")
 
-    print("added_records")
-    print(added_records)
-    print("deleted_records")
-    print(deleted_records)
-    print("modified_records")
-    print(modified_records)
-
-
     # Need to make sure the objectid's are integers, but not the added records, since those have next_rowid
     modified_records.objectid = modified_records.objectid.astype(int)
     deleted_records.objectid  = deleted_records.objectid.astype(int)
+
+    # order the records based on the objectid
+    # cant do it for the additional records since those may not have objectid's associated with them
+    # even if they do, they get trashed
+    modified_records = modified_records.sort_values('objectid')
+    deleted_records = deleted_records.sort_values('objectid')
     
     
     
@@ -241,11 +239,27 @@ def main():
     print("# Make a dataframe so we can groupby objectid and tablename")
     # Make a dataframe so we can groupby objectid and tablename
     # hislog = History Log
+    
+    if not all([item['objectid'] in modified_records.objectid.values for item in accepted_changes]):
+        print("ObjectID of an accepted change was not found among the objectID's of the modified records")
+        print("accepted changes")
+        print(accepted_changes)
+        print("modified_records")
+        print(modified_records)
+        print("modified_records.index")
+        print(modified_records.index)
+        print("modified_records.objectid")
+        print(modified_records.objectid)
+        raise Exception("ObjectID of an accepted change was not found among the objectID's of the modified records")
+    
     hislog = pd.DataFrame({
         'objectid'     :   [int(item['objectid']) for item in accepted_changes],
         'tablename'    :   tablename,
         'changed_cols' :   [item['colname'] for item in accepted_changes],
-        'newvalue'     :   [modified_records.iloc[item['rownumber'] - 1, modified_records.columns.get_loc(f"{item['colname']}")] for item in accepted_changes]   
+        'newvalue'     :   [
+            modified_records[modified_records['objectid'] == item['objectid']][f"{item['colname']}"].values[0]
+            for item in accepted_changes
+        ]   
     })
     
     if not hislog.empty:
@@ -253,7 +267,7 @@ def main():
         print("# 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map")
         # 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map
         for col in hislog.columns:
-            hislog[col] = hislog[col].apply(lambda x: str(x))
+            hislog[col] = hislog[col].apply(lambda x: str(x) if not pd.isnull(x) else '')
         
         print("history log")
         hislog = hislog \

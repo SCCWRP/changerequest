@@ -3,7 +3,7 @@ import re
 from math import log10
 from .functions import checkData, convert_dtype, fetch_meta, check_precision, check_length, check_scale, coalesce
 from flask import current_app
-
+from inspect import currentframe
 
 def checkDataTypes(dataframe, tablename, eng, meta, *args, output = None, **kwargs):
     print("BEGIN checkDataTypes")
@@ -12,6 +12,12 @@ def checkDataTypes(dataframe, tablename, eng, meta, *args, output = None, **kwar
         if col not in current_app.system_fields:
             print("meta")
             print(meta)
+            
+            # col must be in the list of column names in the metadata dataframe
+            assert \
+                col in meta.column_name.values, \
+                f"in function {str(currentframe().f_code.co_name)} - {col} not found in the list of column names that we are checking"
+            
             # using the meta dataframe we can get the python datatype
             dtype = meta.iloc[
                 meta[
@@ -20,6 +26,7 @@ def checkDataTypes(dataframe, tablename, eng, meta, *args, output = None, **kwar
                 meta.columns.get_loc("dtype")
             ] \
             .values[0]
+
             print("dtype:")
             print(dtype)
             print(dataframe.columns)
@@ -78,10 +85,15 @@ def checkPrecision(dataframe, tablename, eng, meta, *args, output = None, **kwar
     print("BEGIN checkPrecision")
     ret = []
     for col in dataframe.columns:
+        
         if (
             (col in meta[meta.udt_name == 'numeric'].column_name.values)
             and (col not in current_app.system_fields)
         ):
+            assert \
+                col in meta.column_name.values, \
+                f"in function {str(currentframe().f_code.co_name)} - {col} not found in the list of column names that we are checking"
+
             prec = int(
                 meta.iloc[
                     meta[
@@ -141,6 +153,9 @@ def checkScale(dataframe, tablename, eng, meta, *args, output = None, **kwargs):
             (col in meta[meta.udt_name == 'numeric'].column_name.values)
             and (col not in current_app.system_fields)
         ):
+            assert \
+                col in meta.column_name.values, \
+                f"in function {str(currentframe().f_code.co_name)} - {col} not found in the list of column names that we are checking"
             scale = int(
                 meta.iloc[
                     meta[
@@ -205,6 +220,9 @@ def checkLength(dataframe, tablename, eng, meta, *args, output = None, **kwargs)
             (col in meta[~pd.isnull(meta.character_maximum_length)].column_name.values)
             and (col not in current_app.system_fields)
         ):
+            assert \
+                col in meta.column_name.values, \
+                f"in function {str(currentframe().f_code.co_name)} - {col} not found in the list of column names that we are checking"
             maxlen = int(
                 meta.iloc[
                     meta[
@@ -314,6 +332,10 @@ def checkIntegers(dataframe, tablename, eng, meta, *args, output = None, **kwarg
                 (col in meta[meta.udt_name.isin(['int2','int4','int8'])].column_name.values)
                 and (col not in current_app.system_fields)
         ):
+            assert \
+                col in meta.column_name.values, \
+                f"in function {str(currentframe().f_code.co_name)} - {col} not found in the list of column names that we are checking"
+            
             udt_name = meta.iloc[meta[meta.column_name == col].index, meta.columns.get_loc("udt_name")].values[0]
             try:
                 ret.append(

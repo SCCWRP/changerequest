@@ -24,18 +24,20 @@ def send_mail(send_from, send_to, subject, text = '', html = None, files=None, s
 
     if files:
         for f in files:
-            assert os.path.exists(f), f"filename {f} not found"
-            ext = f.rsplit('.', 1)[-1] if '.' in f else ''
-            if ext in ('txt', 'sql', 'csv', ''):
-                p = MIMEText(open(f, 'r').read())
+            if os.path.exists(f):
+                ext = f.rsplit('.', 1)[-1] if '.' in f else ''
+                if ext in ('txt', 'sql', 'csv', ''):
+                    p = MIMEText(open(f, 'r').read())
+                else:
+                    attachment = open(f, 'rb')
+                    p = MIMEBase('application','octet-stream')
+                    p.set_payload((attachment).read())
+                    encoders.encode_base64(p)
+                    
+                p.add_header('Content-Disposition',f"attachment; filename={f.split('/')[-1]}")
+                msg.attach(p)
             else:
-                attachment = open(f, 'rb')
-                p = MIMEBase('application','octet-stream')
-                p.set_payload((attachment).read())
-                encoders.encode_base64(p)
-                
-            p.add_header('Content-Disposition',f"attachment; filename={f.split('/')[-1]}")
-            msg.attach(p)
+                print(f"filename {f} not found")
 
     smtp = smtplib.SMTP(server)
     smtp.sendmail(send_from, send_to, msg.as_string())

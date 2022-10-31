@@ -147,7 +147,7 @@ def main():
                             if ( (str(i).strip() == '') or (pd.isnull(i)) )
                             else str(i).strip()
                             if ( (isinstance(i, (float, int))) or ("sde.next_" in str(i)) )
-                            else "'{}'".format(str(i).replace("'","").replace('"',""))  
+                            else "'{}'".format(str(i).replace("'","").replace('"',""))
                             for i in x
                         ]
                     )
@@ -452,7 +452,7 @@ def default_error_handler(error):
                 str(error)[:500],
                 '\n\n\t'.join([f"{k}: {session.get(k)}" for k in session.keys()])
             ),
-            files = [session.get('comparison_path')],
+            files = [str(session.get('comparison_path'))],
             server = current_app.config.get('MAIL_SERVER')
         )
     return response

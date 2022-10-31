@@ -123,6 +123,7 @@ def savechanges():
                 change_processed
             ) VALUES {', '.join(change_history_records)}
         """
+        change_history_sql = change_history_sql.replace('%','%%')
         print("change_history_sql")
         print(change_history_sql)
 

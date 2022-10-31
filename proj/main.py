@@ -72,7 +72,7 @@ def main():
     # df_modified needs to have the object id's filled in
     print("# df_modified needs to have the object id's filled in")
     maxobjid = df_modified.objectid.max()
-    df_modified.objectid = df_modified.apply(lambda row: row.name + maxobjid if pd.isnull(row.objectid) else row.objectid, axis = 1)
+    df_modified.objectid = df_modified.apply(lambda row: row.name + maxobjid + 1 if pd.isnull(row.objectid) else row.objectid, axis = 1)
     df_modified.objectid = df_modified.objectid.astype(int)
         
     # Remember tablenames is a global variable of key value pairs (dictionary)

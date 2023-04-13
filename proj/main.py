@@ -105,6 +105,8 @@ def main():
     if errors == []:
         # custom checks
         try:
+            print(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
+            
             custom_check_func = eval(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
         except Exception as e:
             # To be honest this error should only occur if the app is misconfigured, so i should probably just go with assert statements to enforce this
@@ -387,7 +389,7 @@ def main():
     path_to_highlighted_excel =  f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx"
     session['comparison_path'] = path_to_highlighted_excel
 
-    writer = pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter', options = {'strings_to_formulas': False})
+    writer = pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}})
     original_data.to_excel(writer, sheet_name = "Original", index = False)
     modified_records.to_excel(writer, sheet_name = "Modified", index = False)
     added_records.to_excel(writer, sheet_name = "Added", index = False)
@@ -409,8 +411,8 @@ def main():
     highlight_changes(
         worksheet = worksheet, color = accepted_color, cells = [(item['rownumber'], modified_records.columns.get_loc(item['colname'])) for item in accepted_changes]
     )
-    
-    writer.save()
+    print(dir(writer))
+    writer._save()
     print("Successfully wrote to Excel")
 
 

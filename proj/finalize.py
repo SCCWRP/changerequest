@@ -144,7 +144,7 @@ def savechanges():
                     *current_app.maintainers,
                     str(session.get('session_user_email'))
                 ],
-                'Data Change Request made',
+                f'Data Change Request made for {current_app.config.get("projectname")}',
                 """A database change request was made from {} :\n\n\
 Datatype: {}\n\
 Original Submission Date: {}\n\

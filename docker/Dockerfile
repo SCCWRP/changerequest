@@ -10,7 +10,9 @@ RUN pip3 install markupsafe==2.0.1
 RUN pip3 install uwsgi flask ipython
 RUN pip3 install xlrd flask_session
 RUN pip3 install flask_cors
-RUN pip3 install sqlalchemy
+#RUN pip3 install sqlalchemy
+#https://github.com/dagster-io/dagster/discussions/11881 sqlalchemy >= 2.0.0 has a bug where eng.execute generates an error
+RUN pip3 install sqlalchemy==1.4.47
 RUN apt-get install -y libpq-dev && pip3 install psycopg2
 RUN pip3 install pandas xlsxwriter numpy
 RUN pip3 install folium

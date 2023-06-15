@@ -59,7 +59,7 @@ def main():
 
         # df_modified will be the data the user uploaded
         # I think result and mdl are read in as object since they are character fields in the SMC database
-        df_modified = pd.read_excel(changed_data_path, dtype={'result': object, 'mdl': object})
+        df_modified = pd.read_excel(changed_data_path, dtype={'result': object, 'mdl': object}, keep_default_na = False, na_values = [''])
 
         # flush the temporary table if they give us a new file
         eng.execute("DELETE FROM tmp.{};".format(session['modified_tablename']))
@@ -68,7 +68,11 @@ def main():
         print("No file given")
         df_modified = pd.DataFrame.from_records(request.get_json())
         df_modified.replace('', np.NaN, inplace = True)
-        
+
+    # code expects this column to exist
+    if 'objectid' not in [c.lower() for c in df_modified.columns]:
+        df_modified['objectid'] = df_modified.index
+
     # df_modified needs to have the object id's filled in
     print("# df_modified needs to have the object id's filled in")
     maxobjid = df_modified.objectid.max()
@@ -105,6 +109,8 @@ def main():
     if errors == []:
         # custom checks
         try:
+            print(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
+            
             custom_check_func = eval(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
         except Exception as e:
             # To be honest this error should only occur if the app is misconfigured, so i should probably just go with assert statements to enforce this
@@ -147,7 +153,8 @@ def main():
                             if ( (str(i).strip() == '') or (pd.isnull(i)) )
                             else str(i).strip()
                             if ( (isinstance(i, (float, int))) or ("sde.next_" in str(i)) )
-                            else "'{}'".format(str(i).replace("'","").replace('"',""))
+                            else "E'{}'".format(str(i).replace("'","\\'").replace('"','\\"')) if (("'" in str(i)) or ('"' in str(i)))
+                            else "'{}'".format(str(i))
                             for i in x
                         ]
                     )
@@ -362,7 +369,7 @@ def main():
     #########################
 
     print("changed_indices")
-    #print(changed_indices)
+    print(changed_indices)
 
     sql_filepath = f"{os.getcwd()}/files/{session['sessionid']}.sql"
     # Write hislog to a SQL file rather than excel, per Paul's request to leave it out of the excel file
@@ -386,7 +393,7 @@ def main():
     path_to_highlighted_excel =  f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx"
     session['comparison_path'] = path_to_highlighted_excel
 
-    writer = pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter', options = {'strings_to_formulas': False})
+    writer = pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}})
     original_data.to_excel(writer, sheet_name = "Original", index = False)
     modified_records.to_excel(writer, sheet_name = "Modified", index = False)
     added_records.to_excel(writer, sheet_name = "Added", index = False)
@@ -408,8 +415,7 @@ def main():
     highlight_changes(
         worksheet = worksheet, color = accepted_color, cells = [(item['rownumber'], modified_records.columns.get_loc(item['colname'])) for item in accepted_changes]
     )
-    
-    writer.save()
+    writer._save()
     print("Successfully wrote to Excel")
 
 

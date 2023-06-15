@@ -130,7 +130,7 @@ def sessiondata():
             DELETE FROM tmp.{session['modified_tablename']};
         """
     )
-
+    print(tablename)
     # Remove Not NULL constraints from the tmp tables, at least for the immutable fields
     # It doesnt matter if those fields get populated in the tmp tables
     # we need to do this with psycopg sql injection prevention and all that
@@ -187,7 +187,7 @@ def sessiondata():
 
 
     # write to excel for user to download
-    with pd.ExcelWriter(original_data_filepath, engine = 'xlsxwriter', options = {'strings_to_formulas':False}) as writer:
+    with pd.ExcelWriter(original_data_filepath, engine = 'xlsxwriter',engine_kwargs={'options': {'strings_to_formulas': False}}) as writer:
         df.to_excel(writer, index=False)
 
 

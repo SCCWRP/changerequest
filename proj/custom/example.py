@@ -1,6 +1,6 @@
 from inspect import currentframe
 from flask import current_app, session
-from .functions import checkData, get_badrows
+from .functions import checkData
 import pandas as pd
 
 def __example__(df, tablename):

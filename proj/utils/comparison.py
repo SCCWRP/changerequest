@@ -49,7 +49,7 @@ def compare(df_origin, df_modified, pkey_columns, immutable_cols = []):
                         ) 
                     ) 
                 )
-                for col in df_origin.columns if col not in pkey_columns 
+                for col in df_origin.columns if col not in [*pkey_columns, *immutable_cols, 'objectid']
             ]
         )
         # if it doesn't meet any above case, there is no change and we return a Nonetype object
@@ -58,6 +58,12 @@ def compare(df_origin, df_modified, pkey_columns, immutable_cols = []):
         # don't forget that axis = 1 since the args passed to the lambda function are rows of the dataframe
         , axis = 1
     )
+
+    pd.set_option('display.max_columns', None)
+    print("merged_df")
+    print(merged_df)
+    print(merged_df.change_type)
+    pd.set_option('display.max_columns', 4)
 
     print("### After comparing the data, we will replace the objectid column with objectid_old")
     # After comparing the data, we will replace the objectid column with objectid_old

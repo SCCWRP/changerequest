@@ -33,6 +33,8 @@ CUSTOM_CONFIG = json.loads( open( os.path.join(CUSTOM_CONFIG_PATH, 'config.json'
 app = Flask(__name__, static_url_path='/static')
 app.debug = True # remove for production
 
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_CONNECTION_STRING")
 # SQLALchemy
 db = SQLAlchemy()
 db.init_app(app)
@@ -59,7 +61,7 @@ app.config['MAIL_USE_SSL'] = True
 
 app.config['SESSION_TYPE'] = 'filesystem'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_CONNECTION_STRING")
+
 app.config['SQLALCHEMY_ECHO'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

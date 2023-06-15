@@ -68,7 +68,11 @@ def main():
         print("No file given")
         df_modified = pd.DataFrame.from_records(request.get_json())
         df_modified.replace('', np.NaN, inplace = True)
-        
+
+    # code expects this column to exist
+    if 'objectid' not in [c.lower() for c in df_modified.columns]:
+        df_modified['objectid'] = df_modified.index
+
     # df_modified needs to have the object id's filled in
     print("# df_modified needs to have the object id's filled in")
     maxobjid = df_modified.objectid.max()
@@ -365,7 +369,7 @@ def main():
     #########################
 
     print("changed_indices")
-    #print(changed_indices)
+    print(changed_indices)
 
     sql_filepath = f"{os.getcwd()}/files/{session['sessionid']}.sql"
     # Write hislog to a SQL file rather than excel, per Paul's request to leave it out of the excel file
@@ -411,7 +415,6 @@ def main():
     highlight_changes(
         worksheet = worksheet, color = accepted_color, cells = [(item['rownumber'], modified_records.columns.get_loc(item['colname'])) for item in accepted_changes]
     )
-    print(dir(writer))
     writer._save()
     print("Successfully wrote to Excel")
 

@@ -74,14 +74,14 @@ def main():
     maxobjid = df_modified.objectid.max()
     df_modified.objectid = df_modified.apply(lambda row: row.name + maxobjid + 1 if pd.isnull(row.objectid) else row.objectid, axis = 1)
     df_modified.objectid = df_modified.objectid.astype(int)
-        
+    
     # Remember tablenames is a global variable of key value pairs (dictionary)
     # with keys being the datatype and the values being the corresponding table(s)
     # eventually this will become painful when/if the changes are done on the tbl tables
     tablename = session.get('tablename')
     
     # Get the merging columns (primarykeys of the table based on tablename)
-    #session['primary_key'] = pkey_columns
+    # session['primary_key'] = pkey_columns
     pkey_columns = get_primary_key(tablename, eng)
 
     # We need to have a well defined primary key, otherwise, we cant process changes for the table

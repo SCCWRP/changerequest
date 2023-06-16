@@ -86,19 +86,6 @@ app.send_from = CUSTOM_CONFIG.get('send_from')
 #  We need to adjust the code accordingly and get rid of all these individual lines that add on to the app's attributes and things like that
 app.config.update(CUSTOM_CONFIG)
 
-
-# list of database fields that should not be queried on - removed status could be a problem 9sep17 - added trawl calculated fields - removed projectcode for smc part of tbl_phab
-app.system_fields = [
-    "globalid", "submissionid", "created_user", "created_date", "last_edited_user", "last_edited_date", "warnings"
-]
-
-app.custom_unchanging_fields = CUSTOM_CONFIG.get('custom_unchanging_fields')
-
-# All fields that begin with login must also be immutable
-app.immutable_fields = [
-    *app.system_fields, *app.custom_unchanging_fields
-]
-
 # set the database connection string, database, and type of database we are going to point our application at
 app.eng = create_engine(os.environ.get('DB_CONNECTION_STRING'))
 
@@ -116,6 +103,22 @@ def teardown_request(exception):
     if hasattr(g, 'eng'):
         g.eng.dispose()
 
+
+# get the list of login fields
+checker_app_login_fields = pd.read_sql("SELECT column_name FROM information_schema.columns WHERE column_name LIKE 'login_%%' ;", app.eng).column_name.tolist()
+
+# list of database fields that should not be queried on - removed status could be a problem 9sep17 - added trawl calculated fields - removed projectcode for smc part of tbl_phab
+app.system_fields = [
+    "globalid", "submissionid", "created_user", "created_date", "last_edited_user", "last_edited_date", "warnings", "login_email", "login_agency",
+    *checker_app_login_fields
+]
+
+app.custom_unchanging_fields = CUSTOM_CONFIG.get('custom_unchanging_fields')
+
+# All fields that begin with login must also be immutable
+app.immutable_fields = [
+    *app.system_fields, *app.custom_unchanging_fields
+]
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):

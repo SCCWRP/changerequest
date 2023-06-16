@@ -1,6 +1,6 @@
 import pandas as pd
 
-def compare(df_origin, df_modified, pkey_columns, immutable_cols = []):
+def compare(df_origin, df_modified, pkey_columns, immutable_cols = [], special_numeric_columns = []):
     print("comparison function")
     # merge the changed data with the original
     print("pkey_columns")
@@ -31,11 +31,13 @@ def compare(df_origin, df_modified, pkey_columns, immutable_cols = []):
         )
         else "modification"
         # if any of the old column values are different from the new columns values, it is a modified record
+        # honestly, it is not good that we have to specify column names
+        # Soon this whole thing should be re done in SQL, comparing the two tables that the app makes
         if not all(
             [
                 ( 
                     (
-                        (x[f'{col}'] == x[f'{col}_old']) if col != 'mdl' else (float(x[f'{col}']) == float(x[f'{col}_old']))
+                        (x[f'{col}'] == x[f'{col}_old']) if col not in special_numeric_columns else (float(x[f'{col}']) == float(x[f'{col}_old']))
                     )
                     | 
                     (
@@ -118,7 +120,12 @@ def compare(df_origin, df_modified, pkey_columns, immutable_cols = []):
             # Here we are simply taking advantage of the speed of list comp, to append to the changed indices variable
             changed_indices.append({'rownumber': int(x.name + 1), 'colname': str(col), 'objectid': int(x['objectid'])}) 
             for col in non_pkey_columns 
-            if not ((x[f'{col}'] == x[f'{col}_old']) | (all(pd.isnull([x[f'{col}'], x[f'{col}_old']])))) 
+            if not (
+                (
+                    (x[f'{col}'] == x[f'{col}_old']) if col not in special_numeric_columns else (float(x[f'{col}']) == float(x[f'{col}_old']))
+                )
+                | (all(pd.isnull([x[f'{col}'], x[f'{col}_old']])))
+            ) 
         ],
         axis = 1
     )

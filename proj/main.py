@@ -212,8 +212,16 @@ def main():
         .replace("'=","=") # For resqualcode
 
 
+
+    # Here we run the comparison function - the heart and soul of the change app
+    # There are some tables where numeric values are stored as text - not sure why. But the app does not like that.
+    # The workaround is to specify such columns in the application's configuration
+    # Then here, we go and access it from the config and pass to the comparison function so it knows which columns to treat as numeric
+    #    (because it will think it is text by default)
+    special_numeric_cols = current_app.dtypes.get(session.get("dtype")).get("special_numeric_columns", [])
+    
     added_records, deleted_records, modified_records, changed_indices, original_data = \
-        compare(df_origin, df_modified, pkey_columns, current_app.immutable_fields)
+        compare(df_origin, df_modified, pkey_columns, current_app.immutable_fields, special_numeric_cols)
     
     print("Done with Comparison routine")
 
@@ -238,6 +246,9 @@ def main():
     ]
     accepted_changes = [x for x in changed_indices if x not in rejected_changes]
 
+    # chnaged_indices is a list of dictionaries containing:
+    # The objectid, column name and row index (on the dataframe) of the change
+
 
     ##################################
     # --  Generate SQL statements -- #
@@ -247,18 +258,11 @@ def main():
     # Make a dataframe so we can groupby objectid and tablename
     # hislog = History Log
     
-    if not all([item['objectid'] in modified_records.objectid.values for item in accepted_changes]):
-        print("ObjectID of an accepted change was not found among the objectID's of the modified records")
-        print("accepted changes")
-        print(accepted_changes)
-        print("modified_records")
-        print(modified_records)
-        print("modified_records.index")
-        print(modified_records.index)
-        print("modified_records.objectid")
-        print(modified_records.objectid)
-        raise Exception("ObjectID of an accepted change was not found among the objectID's of the modified records")
+    assert \
+        all([item['objectid'] in modified_records.objectid.values for item in accepted_changes]), \
+        "ObjectID of an accepted change was not found among the objectID's of the modified records"
     
+    # History log for accepted changes
     hislog = pd.DataFrame({
         'objectid'     :   [int(item['objectid']) for item in accepted_changes],
         'tablename'    :   tablename,
@@ -269,13 +273,25 @@ def main():
         ]   
     })
     
+    # History log of rejected changes - not to be used until we highlight the excel files
+    hislog_rejected_changes = pd.DataFrame({
+        'objectid'     :   [int(item['objectid']) for item in rejected_changes],
+        'tablename'    :   tablename,
+        'changed_cols' :   [item['colname'] for item in rejected_changes],
+        'newvalue'     :   [
+            modified_records[modified_records['objectid'] == item['objectid']][f"{item['colname']}"].values[0]
+            for item in rejected_changes
+        ]   
+    })
+    
     if not hislog.empty:
 
         print("# 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map")
         # 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map
         for col in hislog.columns:
-            hislog[col] = hislog[col].apply(lambda x: str(x) if not pd.isnull(x) else '')
+            hislog[col] = hislog[col].apply(lambda x: str(x) if pd.notnull(x) else '')
         
+        # Creating the SQL statement to update records
         print("history log")
         hislog = hislog \
             .groupby(["objectid","tablename"]) \
@@ -393,29 +409,100 @@ def main():
     path_to_highlighted_excel =  f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx"
     session['comparison_path'] = path_to_highlighted_excel
 
-    writer = pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}})
-    original_data.to_excel(writer, sheet_name = "Original", index = False)
-    modified_records.to_excel(writer, sheet_name = "Modified", index = False)
-    added_records.to_excel(writer, sheet_name = "Added", index = False)
-    deleted_records.to_excel(writer, sheet_name = "Deleted", index = False)
 
-    # Coloring the changed cells
-    workbook = writer.book
-    rejected_color = workbook.add_format({'bg_color':'#FF0000'})
-    accepted_color = workbook.add_format({'bg_color':'#42f590'})
-    worksheet = writer.sheets["Modified"]
+    # # History log for accepted changes
+    hislog = pd.DataFrame({
+        'objectid'     :   [int(item['objectid']) for item in accepted_changes],
+        'tablename'    :   tablename,
+        'changed_cols' :   [item['colname'] for item in accepted_changes],
+        'newvalue'     :   [
+            modified_records[modified_records['objectid'] == item['objectid']][f"{item['colname']}"].values[0]
+            for item in accepted_changes
+        ]   
+    })
+    
+    # History log of rejected changes - not to be used until we highlight the excel files
+    hislog_rejected_changes = pd.DataFrame({
+        'objectid'     :   [int(item['objectid']) for item in rejected_changes],
+        'tablename'    :   tablename,
+        'changed_cols' :   [item['colname'] for item in rejected_changes],
+        'newvalue'     :   [
+            modified_records[modified_records['objectid'] == item['objectid']][f"{item['colname']}"].values[0]
+            for item in rejected_changes
+        ]   
+    })
 
-    # highlight changes is defined in utils
-    # Made it a function since later we likely will distinguish between highlighting an accepted change vs a rejected change, which will have different formatting
-    # cells arg here should be a tuple of numbers. xlsxwriter can highlight based on coordinates of the cell, not column names
-    # NOTE Soon there will be two of these - one for accepted changes (green) and another for rejected changes (red)
-    highlight_changes(
-        worksheet = worksheet, color = rejected_color, cells = [(item['rownumber'], modified_records.columns.get_loc(item['colname'])) for item in rejected_changes]
-    )
-    highlight_changes(
-        worksheet = worksheet, color = accepted_color, cells = [(item['rownumber'], modified_records.columns.get_loc(item['colname'])) for item in accepted_changes]
-    )
-    writer._save()
+
+    with pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}}) as writer:
+
+        original_data =  original_data[ ['objectid'] + [c for c in original_data.columns if c != 'objectid'] ]
+        modified_records =  modified_records[ ['objectid'] + [c for c in modified_records.columns if c != 'objectid'] ]
+        added_records =  added_records[ ['objectid'] + [c for c in added_records.columns if c != 'objectid'] ]
+        deleted_records =  deleted_records[ ['objectid'] + [c for c in deleted_records.columns if c != 'objectid'] ]
+
+        original_data.to_excel(writer, sheet_name = "Original", index = False)
+        modified_records.to_excel(writer, sheet_name = "Modified", index = False)
+        added_records.to_excel(writer, sheet_name = "Added", index = False)
+        deleted_records.to_excel(writer, sheet_name = "Deleted", index = False)
+
+        # Coloring the changed cells
+        workbook = writer.book
+        rejected_color = workbook.add_format({'bg_color':'#FF0000'})
+        accepted_color = workbook.add_format({'bg_color':'#42f590'})
+        worksheet = writer.sheets["Modified"]
+
+        # make objectid an int just in case it turned into a float somehow
+        modified_records.objectid = modified_records.objectid.astype(int)
+        hislog.objectid = hislog.objectid.astype(int)
+        hislog_rejected_changes.objectid = hislog_rejected_changes.objectid.astype(int)
+
+        # get the accepted change cells, according to the location in the excel file
+        # Basically we are translating the objectid and column name to the excel row/column index
+        accepted_highlight_cells = modified_records \
+            .assign(excel_row_index = modified_records.index + 1 ) \
+            .merge(
+                hislog, 
+                on = ['objectid'], 
+                how = 'inner'
+            )
+        # now the dataframe has excel row, objectid, and changed column name
+        accepted_highlight_cells['excel_col_index'] = accepted_highlight_cells.changed_cols.apply(
+            lambda c: modified_records.columns.get_loc(c)
+        )
+        accepted_highlight_cells = accepted_highlight_cells.apply(
+                lambda row: (row.excel_row_index, row.excel_col_index), axis = 1
+            ).tolist()
+
+        # Now get the rejected cells
+        rejected_highlight_cells = modified_records \
+            .assign(excel_row_index = modified_records.index + 1 ) \
+            .merge(
+                hislog_rejected_changes, 
+                on = ['objectid'], 
+                how = 'inner'
+            )
+        # now the dataframe has excel row, objectid, and changed column name
+        rejected_highlight_cells['excel_col_index'] = rejected_highlight_cells.changed_cols.apply(
+            lambda c: modified_records.columns.get_loc(c)
+        )
+        rejected_highlight_cells = rejected_highlight_cells.apply(
+                lambda row: (row.excel_row_index, row.excel_col_index), axis = 1
+            ).tolist()
+
+
+        # highlight changes is defined in utils
+        # Made it a function since later we likely will distinguish between highlighting an accepted change vs a rejected change, which will have different formatting
+        # cells arg here should be a tuple of numbers. xlsxwriter can highlight based on coordinates of the cell, not column names
+        # NOTE Soon there will be two of these - one for accepted changes (green) and another for rejected changes (red)
+        highlight_changes(
+            worksheet = worksheet, color = accepted_color, cells = accepted_highlight_cells
+        )
+        highlight_changes(
+            worksheet = worksheet, color = rejected_color, cells = rejected_highlight_cells
+        )
+    
+    # deprecated method
+    # writer._save()
     print("Successfully wrote to Excel")
 
 

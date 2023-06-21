@@ -37,7 +37,13 @@ def compare(df_origin, df_modified, pkey_columns, immutable_cols = [], special_n
             [
                 ( 
                     (
-                        (x[f'{col}'] == x[f'{col}_old']) if col not in special_numeric_columns else (float(x[f'{col}']) == float(x[f'{col}_old']))
+                        (x[f'{col}'] == x[f'{col}_old']) 
+                        if col not in special_numeric_columns 
+                        
+                        else (float(x[f'{col}']) == float(x[f'{col}_old'])) 
+                        if all(pd.notnull([x[f'{col}'], x[f'{col}_old']])) 
+                        
+                        else False
                     )
                     | 
                     (
@@ -122,9 +128,16 @@ def compare(df_origin, df_modified, pkey_columns, immutable_cols = [], special_n
             for col in non_pkey_columns 
             if not (
                 (
-                    (x[f'{col}'] == x[f'{col}_old']) if col not in special_numeric_columns else (float(x[f'{col}']) == float(x[f'{col}_old']))
+                    (x[f'{col}'] == x[f'{col}_old']) 
+                    if col not in special_numeric_columns 
+                    
+                    else (float(x[f'{col}']) == float(x[f'{col}_old'])) 
+                    if all(pd.notnull([x[f'{col}'], x[f'{col}_old']])) 
+
+                    else False
+                ) | (
+                    all(pd.isnull([x[f'{col}'], x[f'{col}_old']]))
                 )
-                | (all(pd.isnull([x[f'{col}'], x[f'{col}_old']])))
             ) 
         ],
         axis = 1

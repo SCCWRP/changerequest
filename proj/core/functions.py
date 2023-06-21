@@ -82,13 +82,38 @@ def check_precision(x, precision):
     if pd.isnull(precision):
         return True
 
-    x = abs(x) if isinstance(x, (int, float)) else abs(float(x))
+    x = abs(x)
+    if 0 < x < 1:
+        # if x is a fraction, it doesnt matter. it should be able to go into a numeric field regardless
+        return True
     left = int(log10(x)) + 1 if x > 0 else 1
-    frac_part = abs(int(re.sub("\d*\.","",str(x)))) if '.' in str(x) else 0
-    if frac_part > 0:
-        while (frac_part % 10 == 0):
-            frac_part = int(frac_part / 10)
-    right = len(str(frac_part)) if frac_part > 0 else 0
+    if 'e-' in str(x):
+        # The idea is if the number comes in in scientific notation
+        # it will look like 7e11 or something like that
+        # We dont care if it is to a positive power of 10 since that doesnt affect the digits to the right
+        # we care if it's a negative power, which looks like 7.23e-5 (.0000723)
+        powerof10 = int(str(x).split('e-')[-1])
+        
+        # search for the digits to the right of the decimal place
+        rightdigits = re.search("\.(\d+)",str(x).split('e-')[0])
+        
+        if rightdigits: # if its not a NoneType, it found a match
+            rightdigits = rightdigits.groups()[0]
+            right = powerof10 + len(rightdigits)
+        else:
+            right = 0
+    else:
+        # frac part is zero if there is no decimal place, or if it came in with scientific notation
+        # because this else block represents the case where the power was positive
+        
+        frac_part = abs(int(re.sub("\d*\.","",str(x)))) if ( '.' in str(x) ) and ('e' not in str(x)) else 0
+        
+        # remove trailing zeros (or zeroes?)
+        if frac_part > 0:
+            while (frac_part % 10 == 0):
+                frac_part = int(frac_part / 10)
+
+        right = len(str(frac_part)) if frac_part > 0 else 0
     return True if left + right <= precision else False
 
 @lru_cache(maxsize=128, typed=True)
@@ -104,11 +129,36 @@ def check_scale(x, scale):
     if pd.isnull(scale):
         return True
     x = abs(x)
-    frac_part = abs(int(re.sub("\d*\.","",str(x)))) if '.' in str(x) else 0
-    if frac_part > 0:
-        while (frac_part % 10 == 0):
-            frac_part = int(frac_part / 10)
-    right = len(str(frac_part)) if frac_part > 0 else 0
+    if 'e-' in str(x):
+        # The idea is if the number comes in in scientific notation
+        # it will look like 7e11 or something like that
+        # We dont care if it is to a positive power of 10 since that doesnt affect the digits to the right
+        # we care if it's a negative power, which looks like 7.23e-5 (.0000723)
+        powerof10 = int(str(x).split('e-')[-1])
+        
+        # search for the digits to the right of the decimal place
+        rightdigits = re.search("\.(\d+)",str(x).split('e-')[0])
+        
+        if rightdigits: # if its not a NoneType, it found a match
+            rightdigits = rightdigits.groups()[0]
+            right = powerof10 + len(rightdigits)
+        else:
+            right = 0
+    else:
+        # frac part is zero if there is no decimal place, or if it came in with scientific notation
+        # because this else block represents the case where the power was positive
+        #print('HERE')
+        #print(x)
+        #print(str(x))
+        frac_part = abs(int(re.sub("\d*\.","",str(x)))) if ( '.' in str(x) ) and ('e' not in str(x)) else 0
+        #print('NO')
+        
+        # remove trailing zeros (or zeroes?)
+        if frac_part > 0:
+            while (frac_part % 10 == 0):
+                frac_part = int(frac_part / 10)
+
+        right = len(str(frac_part)) if frac_part > 0 else 0
     return True if right <= scale else False
 
 @lru_cache(maxsize=128, typed=True)

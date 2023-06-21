@@ -134,12 +134,27 @@ def sessiondata():
     # Remove Not NULL constraints from the tmp tables, at least for the immutable fields
     # It doesnt matter if those fields get populated in the tmp tables
     # we need to do this with psycopg sql injection prevention and all that
+
+    print("Querying for columns that the temp tables actually have so we dont attempt to modify non existent columns")
+    existing_cols = set(
+        pd.read_sql(
+            f"""
+                (SELECT DISTINCT column_name FROM information_schema.columns WHERE table_name LIKE '{session['modified_tablename']}')
+                UNION ALL
+                (SELECT DISTINCT column_name FROM information_schema.columns WHERE table_name LIKE '{session['origin_tablename']}')
+            """,
+            eng
+        ) \
+        .column_name.unique()
+    )
+    print("DONE querying for columns that the temp tables actually have so we dont attempt to modify non existent columns")
+
     rmsql = [
         f"""
             ALTER TABLE tmp.{session['modified_tablename']} ALTER COLUMN {col} DROP NOT NULL;
             ALTER TABLE tmp.{session['origin_tablename']} ALTER COLUMN {col} DROP NOT NULL;
         """
-        for col in current_app.immutable_fields
+        for col in set(current_app.immutable_fields).intersection(existing_cols)
     ]
 
     # objectid cant be part of the system fields - it must be preserved during the comparison

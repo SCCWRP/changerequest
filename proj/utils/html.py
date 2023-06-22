@@ -65,8 +65,8 @@ def htmltable(df, _id = None, cssclass = None, enumeraterows = True):
                                 map(
                                     lambda cell:
                                     # content should be editable for all columns except for the objectid
-                                    #'<td class="colname-{}" onkeypress="enterUnfocus(event, this)">{}</td>'.format(
-                                    '<td contenteditable="true" class="colname-{}" onkeypress="enterUnfocus(event, this)">{}</td>'.format(
+                                    #'<td class="colname-{}">{}</td>'.format(
+                                    '<td contenteditable="true" class="colname-{}">{}</td>'.format(
                                         cell.get('column_name'), 
                                         cell.get('column_value') if not pd.isnull(cell.get('column_value')) else ''
                                     ) 
@@ -74,7 +74,7 @@ def htmltable(df, _id = None, cssclass = None, enumeraterows = True):
                                     if 
                                         cell.get('column_name') != 'objectid' 
                                     else
-                                        '<td class="colname-{}" onkeypress="enterUnfocus(event, this)">{}</td>' \
+                                        '<td class="colname-{}">{}</td>' \
                                         .format(
                                             cell.get('column_name'), 
                                             cell.get('column_value') if not pd.isnull(cell.get('column_value')) else ''

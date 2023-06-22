@@ -1,17 +1,6 @@
 {% extends 'base.jinja2' %}
 {% block head %}
 {{ super() }}
-
-    <script type ="text/javascript"> 
-        // i have to figure out a better way fo doing this later
-        // deselects a cell when the enter key is pressed
-        const enterUnfocus = function(event, cell) { 
-            var code = (event.keyCode ? event.keyCode : event.which);
-            if (code == 13) {
-                cell.blur();
-            }
-        }
-    </script>
     <link rel="stylesheet" href="{{url_for('static', filename='edit_submission.css')}}">
     <script type="module" src="{{url_for('static', filename='save.js')}}"></script>
 {% endblock %}
@@ -111,6 +100,12 @@
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
+{% block tooltip %}
+<div class="tooltip" id="changed-cell-tooltip">
+    <div class="title"></div>
+    <div class="content"></div>
 </div>
 {% endblock %}
 {% block scripts %}

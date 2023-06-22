@@ -54,6 +54,7 @@ import { saveChanges } from "./save.js";
 
         // call function that formats the table
         formatDataTable(data);
+        tableNavigation()
 
         // show buttons
         Array.prototype.slice.call(document.querySelectorAll(".post-change-option")).map(
@@ -76,16 +77,70 @@ import { saveChanges } from "./save.js";
 
 })()
 
+
+// (function(){
+
+// })()
+
+
+window.addEventListener("load", function(){
+
+    // select the uploadForm that we are going to be submitting the user's file with
+    const uploadForm = document.querySelector("#upload-form");
+
+    // Drag and Drop listener
+    // Prevent defaults on drag events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    // Highlight drop area when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        document.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        document.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        document.body.style.backgroundColor = '#cccccc'; // Use your own highlight style
+    }
+
+    function unhighlight(e) {
+        document.body.style.backgroundColor = ''; // Reset the highlight style
+    }
+
+    // Handle dropped files
+    document.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        let files = e.dataTransfer.files;
+
+        // Get the file input and set its files property
+        let fileInput = document.querySelector('input#file');
+        fileInput.files = files;
+
+        // Submit the form
+        // uploadForm.submit();
+        const event = new Event('submit', {cancelable: true});
+        uploadForm.dispatchEvent(event);
+
+    }
+})
+
+
 // /* Saving changes when they edit in the browser */
 // (function(){
     
 // })()
 
 
-// /* hit enter and go to next cell - this function lives in html_to_json.js, but it just unfocuses from the current element */
-// (function(){
-
-// })()
 
 // /* global change */
 // (function(){

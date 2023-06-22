@@ -188,7 +188,7 @@ def main():
     print(sys.getsizeof(session))
     if not errors_dataframe.empty:
         return jsonify(
-            tbl = htmltable(errors_dataframe),
+            tbl = htmltable(errors_dataframe, _id = "changes-display-table"),
             changed_indices = rejected_changes, 
             accepted_changes = [], 
             rejected_changes = rejected_changes, 

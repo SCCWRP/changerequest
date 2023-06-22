@@ -411,6 +411,7 @@ def main():
 
 
     # # History log for accepted changes
+    print('# # History log for accepted changes')
     hislog = pd.DataFrame({
         'objectid'     :   [int(item['objectid']) for item in accepted_changes],
         'tablename'    :   tablename,
@@ -422,6 +423,7 @@ def main():
     })
     
     # History log of rejected changes - not to be used until we highlight the excel files
+    print('# History log of rejected changes - not to be used until we highlight the excel files')
     hislog_rejected_changes = pd.DataFrame({
         'objectid'     :   [int(item['objectid']) for item in rejected_changes],
         'tablename'    :   tablename,
@@ -432,7 +434,7 @@ def main():
         ]   
     })
 
-
+    print("writing report to excel")
     with pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}}) as writer:
 
         original_data =  original_data[ ['objectid'] + [c for c in original_data.columns if c != 'objectid'] ]
@@ -446,18 +448,22 @@ def main():
         deleted_records.to_excel(writer, sheet_name = "Deleted", index = False)
 
         # Coloring the changed cells
+        print('# Coloring the changed cells')
         workbook = writer.book
         rejected_color = workbook.add_format({'bg_color':'#FF0000'})
         accepted_color = workbook.add_format({'bg_color':'#42f590'})
         worksheet = writer.sheets["Modified"]
 
         # make objectid an int just in case it turned into a float somehow
+        print('# make objectid an int just in case it turned into a float somehow')
         modified_records.objectid = modified_records.objectid.astype(int)
         hislog.objectid = hislog.objectid.astype(int)
         hislog_rejected_changes.objectid = hislog_rejected_changes.objectid.astype(int)
 
         # get the accepted change cells, according to the location in the excel file
+        print('# get the accepted change cells, according to the location in the excel file')
         # Basically we are translating the objectid and column name to the excel row/column index
+        print('# Basically we are translating the objectid and column name to the excel row/column index')
         accepted_highlight_cells = modified_records \
             .assign(excel_row_index = modified_records.index + 1 ) \
             .merge(
@@ -465,15 +471,20 @@ def main():
                 on = ['objectid'], 
                 how = 'inner'
             )
-        # now the dataframe has excel row, objectid, and changed column name
-        accepted_highlight_cells['excel_col_index'] = accepted_highlight_cells.changed_cols.apply(
-            lambda c: modified_records.columns.get_loc(c)
-        )
-        accepted_highlight_cells = accepted_highlight_cells.apply(
+        if not accepted_highlight_cells.empty:
+            # now the dataframe has excel row, objectid, and changed column name
+            print('# now the dataframe has excel row, objectid, and changed column name')
+            accepted_highlight_cells['excel_col_index'] = accepted_highlight_cells.changed_cols.apply(
+                lambda c: modified_records.columns.get_loc(c)
+            )
+            accepted_highlight_cells = accepted_highlight_cells.apply(
                 lambda row: (row.excel_row_index, row.excel_col_index), axis = 1
             ).tolist()
+        else:
+            accepted_highlight_cells = []
 
         # Now get the rejected cells
+        print('# Now get the rejected cells')
         rejected_highlight_cells = modified_records \
             .assign(excel_row_index = modified_records.index + 1 ) \
             .merge(
@@ -481,13 +492,18 @@ def main():
                 on = ['objectid'], 
                 how = 'inner'
             )
-        # now the dataframe has excel row, objectid, and changed column name
-        rejected_highlight_cells['excel_col_index'] = rejected_highlight_cells.changed_cols.apply(
-            lambda c: modified_records.columns.get_loc(c)
-        )
-        rejected_highlight_cells = rejected_highlight_cells.apply(
+        
+        if not rejected_highlight_cells.empty:
+            # now the dataframe has excel row, objectid, and changed column name
+            print('# now the dataframe has excel row, objectid, and changed column name')
+            rejected_highlight_cells['excel_col_index'] = rejected_highlight_cells.changed_cols.apply(
+                lambda c: modified_records.columns.get_loc(c)
+            )
+            rejected_highlight_cells = rejected_highlight_cells.apply(
                 lambda row: (row.excel_row_index, row.excel_col_index), axis = 1
             ).tolist()
+        else:
+            rejected_highlight_cells = []
 
 
         # highlight changes is defined in utils
@@ -510,8 +526,8 @@ def main():
 
     return jsonify(
         tbl = htmltable(modified_records, _id = "changes-display-table"), 
-        addtbl = htmltable(added_records),
-        deltbl = htmltable(deleted_records), 
+        addtbl = htmltable(added_records, editable = False),
+        deltbl = htmltable(deleted_records, editable = False), 
         changed_indices = changed_indices, 
         accepted_changes = accepted_changes, 
         rejected_changes = rejected_changes, 

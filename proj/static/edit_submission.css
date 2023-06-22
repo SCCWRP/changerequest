@@ -101,3 +101,22 @@ th {
 .changed-cell {
     cursor: pointer;
 }
+
+/* Hide all datatable containers by default */
+.datatable-container {
+    display: none;
+}
+
+/* Show the active datatable container */
+.datatable-container.active {
+    display: block;
+}
+
+/* Additional style for active tab */
+.btn.datatable-tab-button.active {
+    background-color: darkblue !important;  /* Using !important to override Bootstrap's active style */
+    color: #fff;
+}
+.btn.datatable-tab-button {
+    margin: 0.5rem;
+}

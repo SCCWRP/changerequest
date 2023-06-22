@@ -162,4 +162,32 @@ function tableNavigation(){
             cells[i].focus();
         }
     }
+
+    // Pagination for the changed records tables (changed, added, deleted)
+
+    let tabs = document.querySelectorAll('.datatable-tab-button');
+
+    // Add click event listener to each tab button
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Remove 'active' class from all tab buttons and datatable containers
+            document.querySelectorAll('.datatable-tab-button, .datatable-container').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Add 'active' class to clicked tab button
+            this.classList.add('active');
+
+            // Get ID of target datatable container from 'data-target' attribute
+            let target = this.getAttribute('data-target');
+
+            // Add 'active' class to target datatable container
+            document.getElementById(target).classList.add('active');
+        });
+    });
+
+    // Initialize the first tab as active
+    document.querySelector('.datatable-tab-button').click();
+
+
 }

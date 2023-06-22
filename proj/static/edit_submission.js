@@ -10,6 +10,16 @@ import { saveChanges } from "./save.js";
     uploadForm.addEventListener("submit", async function(event){
         event.preventDefault();
         event.stopPropagation();
+
+        /* unhide the datatable containers */
+        Array.prototype.slice.call(document.querySelectorAll(".datatable-container")).map(
+            c => {
+                c.classList.remove("hidden")
+            }
+        )
+        document.getElementById('change-report-container').classList.remove('hidden');
+
+
         document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
 
         //const dropped_files = event.originalEvent.dataTransfer.files;
@@ -30,23 +40,6 @@ import { saveChanges } from "./save.js";
         console.log(data);
         console.log(data.addtbl);
         console.log(data.deltbl);
-
-        
-        /* unhide the datatable containers, only if there are changed records
-            We will always unhide the changed_records container though */
-        Array.prototype.slice.call(document.querySelectorAll(".datatable-container")).map(
-            c => {
-                if ( c.classList.contains("addedrecords") & (data.addtbl !== '') ) {
-                    c.classList.remove("hidden")
-                }
-                if ( c.classList.contains("deletedrecords") & (data.deltbl !== '') ) {
-                    c.classList.remove("hidden")
-                }
-                if ( c.classList.contains("changedrecords") ) {
-                    c.classList.remove("hidden")
-                }
-            }
-        )
         
         document.querySelector(".records-display-inner-container").innerHTML = data.tbl;
         document.querySelector(".added-records-display-inner-container").innerHTML = data.addtbl;
@@ -133,6 +126,7 @@ window.addEventListener("load", function(){
 
     }
 })
+
 
 
 // /* Saving changes when they edit in the browser */

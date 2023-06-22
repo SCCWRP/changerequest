@@ -1,6 +1,6 @@
 import pandas as pd
 
-def htmltable(df, _id = None, cssclass = None, enumeraterows = True):
+def htmltable(df, _id = None, cssclass = None, enumeraterows = True, editable = True):
     '''
         df is a pandas dataframe, 
         id is a css id you want to give to the table, 
@@ -72,7 +72,7 @@ def htmltable(df, _id = None, cssclass = None, enumeraterows = True):
                                     ) 
                                     
                                     if 
-                                        cell.get('column_name') != 'objectid' 
+                                        ((cell.get('column_name') != 'objectid') and (editable))
                                     else
                                         '<td class="colname-{}">{}</td>' \
                                         .format(

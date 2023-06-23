@@ -42,3 +42,4 @@ def send_mail(send_from, send_to, subject, text = '', html = None, files=None, s
     smtp = smtplib.SMTP(server)
     smtp.sendmail(send_from, send_to, msg.as_string())
     smtp.close()
+

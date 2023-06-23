@@ -412,6 +412,15 @@ def main():
     # the variables which will be used for marking the excel file 
     # hislog_accepted_changes and hislog_rejected_changes
     # Were defined above - before the part that generates the SQL statements for updating the data
+    pd.set_option('display.max_columns', None)
+    print("hislog_accepted_changes")
+    print(hislog_accepted_changes)
+    print("hislog_rejected_changes")
+    print(hislog_rejected_changes)
+    print("modified_records")
+    print(modified_records)
+    print("modified_records objectid")
+    print(modified_records.objectid)
 
     print("writing report to excel")
     with pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}}) as writer:
@@ -450,6 +459,9 @@ def main():
                 on = ['objectid'],
                 how = 'inner'
             )
+        print("accepted_highlight_cells")
+        print(accepted_highlight_cells)
+
         if not accepted_highlight_cells.empty:
             # now the dataframe has excel row, objectid, and changed column name
             print('# now the dataframe has excel row, objectid, and changed column name')
@@ -461,6 +473,8 @@ def main():
             ).tolist()
         else:
             accepted_highlight_cells = []
+        print("accepted_highlight_cells list")
+        print(accepted_highlight_cells)
 
         # Now get the rejected cells
         print('# Now get the rejected cells')
@@ -471,6 +485,8 @@ def main():
                 on = ['objectid'], 
                 how = 'inner'
             )
+        print("rejected_highlight_cells")
+        print(rejected_highlight_cells)
         
         if not rejected_highlight_cells.empty:
             # now the dataframe has excel row, objectid, and changed column name
@@ -484,6 +500,8 @@ def main():
         else:
             rejected_highlight_cells = []
 
+        print("rejected_highlight_cells list")
+        print(rejected_highlight_cells)
 
         # highlight changes is defined in utils
         # Made it a function since later we likely will distinguish between highlighting an accepted change vs a rejected change, which will have different formatting

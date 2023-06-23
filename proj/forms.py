@@ -69,7 +69,7 @@ class SignupForm(FlaskForm):
         'Password',
         validators=[
             DataRequired(),
-            Length(min=6, message='Select a stronger password.')
+            Length(min=6, message='Password must be at least 6 characters long.')
         ]
     )
     confirm = PasswordField(
@@ -105,4 +105,16 @@ class EmailForm(FlaskForm):
             Email(message='Enter a valid email.')
         ]
     )
-    submit = SubmitField('Send Confirmation Email')
+    submit = SubmitField('Send')
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('Password', validators=[
+        DataRequired(),
+        Length(min=6, message='Password must be at least 6 characters long.')
+    ])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired(),
+        EqualTo('password', message='Passwords must match.')
+    ])
+    submit = SubmitField('Reset Password')
+

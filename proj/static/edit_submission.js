@@ -47,7 +47,12 @@ import { saveChanges } from "./save.js";
 
         // call function that formats the table
         formatDataTable(data);
+
+        // Add table navigation listeners since elements are being created when the "changed records" table gets created
         tableNavigation()
+
+        // Scroll it into view
+        document.getElementById('change-report-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         // show buttons
         Array.prototype.slice.call(document.querySelectorAll(".post-change-option")).map(

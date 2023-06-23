@@ -82,7 +82,7 @@ def check_precision(x, precision):
     if pd.isnull(precision):
         return True
 
-    x = abs(x)
+    x = abs(float(x))
     if 0 < x < 1:
         # if x is a fraction, it doesnt matter. it should be able to go into a numeric field regardless
         return True
@@ -128,7 +128,7 @@ def check_scale(x, scale):
         return True
     if pd.isnull(scale):
         return True
-    x = abs(x)
+    x = abs(float(x))
     if 'e-' in str(x):
         # The idea is if the number comes in in scientific notation
         # it will look like 7e11 or something like that

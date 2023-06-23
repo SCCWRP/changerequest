@@ -47,7 +47,7 @@ function tableNavigation(){
     // The table doesnt exist until the data gets returned to the browser from the server after comparing the data
     const cells = Array.from(document.querySelectorAll('table#changes-display-table td[contenteditable]'));
 
-    const ncols = document.querySelectorAll('table#changes-display-table tr')[1].querySelectorAll('td[contenteditable]').length
+    const ncols = document.querySelector('table#changes-display-table tbody tr')?.querySelectorAll('td[contenteditable]')?.length ?? 0;
 
     cells.forEach((cell, i) => {
         cell.addEventListener('keydown', (e) => {

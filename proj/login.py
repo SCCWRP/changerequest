@@ -66,15 +66,19 @@ def sessiondata():
     authorized_user = current_user.is_authorized == 'yes'
     print("authorized_user")
     print(authorized_user)
+    maintainers = current_app.config.get('maintainers')
+    maintainers_str = ','.join(maintainers)
+    
+    if not current_user.email_confirmed == 'yes':
+            return jsonify(user_error_msg=f"You have not yet confirmed your email ({current_user.email})")
+    
     if not authorized_user:
-        maintainers = current_app.config.get('maintainers')
-        maintainers_str = ','.join(maintainers)
         return jsonify(user_error_msg=f"SCCWRP has not yet approved the user {current_user.email} to edit data with this application. Contact {maintainers_str}")
     if not admin_user:
         if current_user.organization != login_organization:
-            return jsonify(user_error_msg=f"You ({current_user.email}) are not authorized to edit data from {login_organization}")
-    if not current_user.email_confirmed == 'yes':
-            return jsonify(user_error_msg=f"You have not yet confirmed your email ({current_user.email})")
+            return jsonify(
+                user_error_msg=f"You ({current_user.email}) are not authorized to edit data from {login_organization}. If you believe you received this message in error, contact {maintainers_str}"
+            )
 
     # Get the current sessionid, later used as a changeID
     session['sessionid'] = unixtime(datetime.today())

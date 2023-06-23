@@ -263,7 +263,7 @@ def main():
         "ObjectID of an accepted change was not found among the objectID's of the modified records"
     
     # History log for accepted changes
-    hislog = pd.DataFrame({
+    hislog_accepted_changes = pd.DataFrame({
         'objectid'     :   [int(item['objectid']) for item in accepted_changes],
         'tablename'    :   tablename,
         'changed_cols' :   [item['colname'] for item in accepted_changes],
@@ -284,16 +284,16 @@ def main():
         ]   
     })
     
-    if not hislog.empty:
+    if not hislog_accepted_changes.empty:
 
         print("# 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map")
         # 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map
-        for col in hislog.columns:
-            hislog[col] = hislog[col].apply(lambda x: str(x) if pd.notnull(x) else '')
+        for col in hislog_accepted_changes.columns:
+            hislog_accepted_changes[col] = hislog_accepted_changes[col].apply(lambda x: str(x) if pd.notnull(x) else '')
         
         # Creating the SQL statement to update records
         print("history log")
-        hislog = hislog \
+        hislog = hislog_accepted_changes \
             .groupby(["objectid","tablename"]) \
             .apply(
                 # Set to NULL if they deleted the value
@@ -409,30 +409,9 @@ def main():
     path_to_highlighted_excel =  f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx"
     session['comparison_path'] = path_to_highlighted_excel
 
-
-    # # History log for accepted changes
-    print('# # History log for accepted changes')
-    hislog = pd.DataFrame({
-        'objectid'     :   [int(item['objectid']) for item in accepted_changes],
-        'tablename'    :   tablename,
-        'changed_cols' :   [item['colname'] for item in accepted_changes],
-        'newvalue'     :   [
-            modified_records[modified_records['objectid'] == item['objectid']][f"{item['colname']}"].values[0]
-            for item in accepted_changes
-        ]   
-    })
-    
-    # History log of rejected changes - not to be used until we highlight the excel files
-    print('# History log of rejected changes - not to be used until we highlight the excel files')
-    hislog_rejected_changes = pd.DataFrame({
-        'objectid'     :   [int(item['objectid']) for item in rejected_changes],
-        'tablename'    :   tablename,
-        'changed_cols' :   [item['colname'] for item in rejected_changes],
-        'newvalue'     :   [
-            modified_records[modified_records['objectid'] == item['objectid']][f"{item['colname']}"].values[0]
-            for item in rejected_changes
-        ]   
-    })
+    # the variables which will be used for marking the excel file 
+    # hislog_accepted_changes and hislog_rejected_changes
+    # Were defined above - before the part that generates the SQL statements for updating the data
 
     print("writing report to excel")
     with pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}}) as writer:
@@ -457,7 +436,7 @@ def main():
         # make objectid an int just in case it turned into a float somehow
         print('# make objectid an int just in case it turned into a float somehow')
         modified_records.objectid = modified_records.objectid.astype(int)
-        hislog.objectid = hislog.objectid.astype(int)
+        hislog_accepted_changes.objectid = hislog_accepted_changes.objectid.astype(int)
         hislog_rejected_changes.objectid = hislog_rejected_changes.objectid.astype(int)
 
         # get the accepted change cells, according to the location in the excel file
@@ -467,8 +446,8 @@ def main():
         accepted_highlight_cells = modified_records \
             .assign(excel_row_index = modified_records.index + 1 ) \
             .merge(
-                hislog, 
-                on = ['objectid'], 
+                hislog_accepted_changes,
+                on = ['objectid'],
                 how = 'inner'
             )
         if not accepted_highlight_cells.empty:

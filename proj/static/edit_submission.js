@@ -41,9 +41,9 @@ import { saveChanges } from "./save.js";
         console.log(data.addtbl);
         console.log(data.deltbl);
         
-        document.querySelector(".records-display-inner-container").innerHTML = data.tbl;
-        document.querySelector(".added-records-display-inner-container").innerHTML = data.addtbl;
-        document.querySelector(".deleted-records-display-inner-container").innerHTML = data.deltbl;
+        document.querySelector("#changed-records-display-inner-container").innerHTML = data.tbl;
+        document.querySelector("#added-records-display-inner-container").innerHTML = data.addtbl;
+        document.querySelector("#deleted-records-display-inner-container").innerHTML = data.deltbl;
 
         // call function that formats the table
         formatDataTable(data);

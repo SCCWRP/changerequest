@@ -15,12 +15,15 @@ th {
     border: 1px solid black;
     padding: 3px;
 } 
+
+
 .dataTable {
     border: 1px solid black;
     border-radius: 3px;
     height: 500px; 
     width: 100%; 
     overflow: auto;
+    position: relative;
     
 }
 .dataTable::-webkit-scrollbar {
@@ -119,4 +122,34 @@ th {
 }
 .btn.datatable-tab-button {
     margin: 0.5rem;
+}
+
+.records-display-inner-container {
+    border: 1px solid black;
+    border-radius: 3px;
+    position: relative;
+    height: 500px;
+    overflow: auto;
+}
+
+
+.records-display-inner-container thead th {
+    border: 1px solid black;
+    position: sticky;
+    top: 0;
+    z-index:2
+}
+
+.records-display-inner-container thead th {
+    border: 1px solid black;
+    position: sticky;
+    top: 0;
+    background-color: #dbdbdb;
+    z-index: 1; /* This ensures the header is drawn over the table rows when scrolling */
+    margin-bottom: 2px;
+    box-shadow: 0px -2px 0px 0px black, 0px 2px 0px 0px black;
+}
+
+.records-display-inner-container table {
+    width: 100%;
 }

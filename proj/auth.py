@@ -104,6 +104,7 @@ def signin():
                     flash("You have not yet confirmed your email address")
                     return redirect(url_for('auth.confirm_email'))
                 session['session_user_email'] = user.email
+                session['session_user_agency'] = user.organization
                 return redirect(next_page or url_for('login.index'))
             flash('Invalid username/password combination')
             return redirect(url_for('auth.signin'))

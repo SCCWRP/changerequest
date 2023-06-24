@@ -16,7 +16,10 @@ def savechanges():
     sessionid = session.get('sessionid')
     submissionid = session.get('submissionid')
     login_info = json.dumps(session.get('login_fields')).replace("'","")
+
+    # Both provided when the user signs in (auth.signin)
     session_user_email = str(session.get('session_user_email'))
+    session_user_agency = str(session.get('session_user_agency'))
 
     try:
         print("getting the changed records")
@@ -73,7 +76,7 @@ def savechanges():
   
         change_history_records = [
             *changed.apply(
-                lambda row: change_history_update(row, original, sessionid, submissionid, login_info, session_user_email),
+                lambda row: change_history_update(row, original, sessionid, submissionid, login_info, session_user_agency, session_user_email),
                 axis = 1
             ) \
             .values,
@@ -86,6 +89,7 @@ def savechanges():
                         {sessionid},
                         {submissionid},
                         '{login_info}',
+                        '{session_user_agency}'
                         '{session_user_email}',
                         '{pd.Timestamp(sessionid, unit = 's').strftime("%Y-%m-%d %H:%M:%S")}',
                         'No'
@@ -102,6 +106,7 @@ def savechanges():
                         {sessionid},
                         {submissionid},
                         '{login_info}',
+                        '{session_user_agency}',
                         '{session_user_email}',
                         '{pd.Timestamp(sessionid, unit = 's').strftime("%Y-%m-%d %H:%M:%S")}',
                         'No'
@@ -118,6 +123,7 @@ def savechanges():
                 change_id,
                 submissionid,
                 login_fields,
+                requesting_agency,
                 requesting_person,
                 change_date,
                 change_processed
@@ -138,11 +144,37 @@ def savechanges():
             sql = sqlfile.read()
             sqlfile.close()
 
+            # email for user
             send_mail(
                 current_app.send_from,
                 [
                     *current_app.maintainers,
                     str(session.get('session_user_email'))
+                ],
+                f'Data Change Request made for {current_app.config.get("projectname")}',
+                """A database change request was made from {} :\n\n\
+Datatype: {}\n\
+Original Submission Date: {}\n\
+Original Submission ID: {}\n\
+Change ID: {}\n\n\
+SCCWRP Staff has been notified and they will let you know when the change has been finalized.
+\n\
+                """.format(
+                    str(session.get('session_user_email')),
+                    session.get('dtype'),
+                    session.get('submissiondate'),
+                    session.get('submissionid'),
+                    session.get('sessionid')
+                ),
+                files = [session.get('comparison_path')],
+                server = current_app.config.get('MAIL_SERVER')
+            )
+
+            # email for staff
+            send_mail(
+                current_app.send_from,
+                [
+                    *current_app.maintainers
                 ],
                 f'Data Change Request made for {current_app.config.get("projectname")}',
                 """A database change request was made from {} :\n\n\

@@ -83,11 +83,18 @@ def sessiondata():
                 user_error_msg=f"You ({current_user.email}) are not authorized to edit data from {login_organization}. If you believe you received this message in error, contact {maintainers_str}"
             )
 
+    # check if they correctly filled out the form by seeing whether there is a submissionID that was found
+    if not request.form.get('submissionid'):
+        return jsonify(
+            user_error_msg="Submission ID Not found - Make sure that you completely filled out the form"
+        )
+
     # Get the current sessionid, later used as a changeID
     session['sessionid'] = unixtime(datetime.today())
 
     # SubmissionID and Tablename are in every form, thats how the HTML was set up
     session['submissionid'] = request.form.get('submissionid')
+
     session['submissiondate'] = pd.Timestamp(int(request.form.get('submissionid')), unit = 's').strftime('%Y-%m-%d %H:%M:%S')
     session['tablename'] = request.form.get('tablename')
     # now provided in auth form

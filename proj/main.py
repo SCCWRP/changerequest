@@ -317,8 +317,12 @@ def main():
         print(hislog)
 
         hislog = hislog.tolist() if isinstance(hislog, pd.Series) else []
+
+        # view_changed_records_sql is in response to Zaib's request to view the data before committing the transaction
+        view_changed_records_sql = f"SELECT * FROM {session.get('tablename')} WHERE objectid IN {tuple(hislog_accepted_changes.objectid.sort_values().unique())}"
     else:
         hislog = []
+        view_changed_records_sql = f" -- No Changed Records -- "
 
     print("hislog")
     print(hislog)
@@ -406,6 +410,9 @@ def main():
         f.write("-- DELETED RECORDS --\n")
         f.write(delete_records_sql)
         f.write("\n;\n\n")
+        f.write("-- View changed data before transaction commit:\n")
+        f.write(view_changed_records_sql)
+        f.write("\n\n")
         f.write(f"-- Change History Table Update - run when the change has been processed and finalized -- \n")
         f.write(f"UPDATE {os.environ.get('CHANGE_HISTORY_TABLE')} SET change_processed = 'Yes' WHERE change_id = {session['sessionid']} RETURNING *; --\n")
         f.write('COMMIT;\n')

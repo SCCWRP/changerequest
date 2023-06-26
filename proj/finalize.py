@@ -5,7 +5,7 @@ import os
 from .utils.generic import change_history_update
 from .utils.mail import send_mail
 
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 finalize = Blueprint('finalize', __name__)
 @finalize.route("/final_submit", methods = ['GET', 'POST'])
@@ -200,16 +200,23 @@ UPDATE RECORDS: (See attached SQL file)\n
             )
 
         
+        # Use session.pop to clear the specific session data so that they cant finalize their change twice
+        datatype = session.pop('dtype', None)
+        session_user_email = current_user.email
+        submissiondate = session.pop('submissiondate', None) 
+        submissionid = session.pop('submissionid', None) 
+        login_fields = session.pop('login_fields', None)
+        change_id = session.pop('sessionid', None)
 
         return render_template(
             "thankyou.jinja2",
             success = True,
-            datatype = session.get('dtype'),
-            session_user_email = str(session.get('session_user_email')), 
-            submissiondate = session.get('submissiondate'), 
-            submissionid = session.get('submissionid'), 
-            login_fields = session.get('login_fields'),
-            change_id = session.get('sessionid')
+            datatype = datatype,
+            session_user_email = session_user_email,
+            submissiondate = submissiondate,
+            submissionid = submissionid,
+            login_fields = login_fields,
+            change_id = change_id
         )
 
     except Exception as e:
@@ -230,15 +237,24 @@ UPDATE RECORDS: (See attached SQL file)\n
             files = [session.get('comparison_path')],
             server = current_app.config.get('MAIL_SERVER')
         )
+
+        # Use session.pop to clear the specific session data so that they cant finalize their change twice
+        session_user_email = current_user.email
+        datatype = session.pop('dtype', None)
+        submissiondate = session.pop('submissiondate', None)
+        submissionid = session.pop('submissionid', None)
+        login_fields = session.pop('login_fields', None)
+        change_id = session.pop('sessionid', None)
+
         return render_template(
             "thankyou.jinja2",
             success = False,
-            datatype = session.get('dtype'),
-            session_user_email = str(session.get('session_user_email')), 
-            submissiondate = session.get('submissiondate'), 
-            submissionid = session.get('submissionid'), 
-            login_fields = session.get('login_fields'),
-            change_id = session.get('sessionid')
+            datatype = datatype,
+            session_user_email = session_user_email,
+            submissiondate = submissiondate,
+            submissionid = submissionid,
+            login_fields = login_fields,
+            change_id = change_id
         )
 
 

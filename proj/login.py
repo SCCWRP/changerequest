@@ -1,7 +1,7 @@
 #########################################################
 # This file contains code that handles the login screen #
 #########################################################
-from flask import Blueprint, request, jsonify, session, render_template, current_app, g
+from flask import Blueprint, request, redirect, url_for, jsonify, session, render_template, current_app, g
 import pandas as pd
 from datetime import datetime
 import os
@@ -22,7 +22,10 @@ def index():
 @login.route("/edit-submission", methods = ['GET', 'POST'])
 @login_required
 def edit_data():
-    return render_template("edit-submission.jinja2", login_fields = session.get('login_fields'))
+    if session.get('login_fields'):
+        return render_template("edit-submission.jinja2", login_fields = session.get('login_fields'))
+    return redirect(url_for('login.index'))
+    
 
 @login.route('/login_values')
 @login_required

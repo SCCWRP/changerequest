@@ -127,10 +127,15 @@
                     </div>
                 </div>
                 <div class="submit-button-wrap header-element" style="margin-top: 30px;">
-                    <form action="{{request.script_root}}/final_submit" method="GET" style="float: right;" target = "_blank" onSubmit="return confirm('Are you sure you wish to submit this data?');">
+                    <form 
+                        action="{{url_for('finalize.savechanges')}}" 
+                        method="GET" 
+                        style="float: right;" 
+                        onSubmit="(function(){window.onbeforeunload = undefined; return confirm('Are you sure you want to finalize this change request?');})();"
+                    >
                         <input id="finalize-submission" type="submit" value="Finalize Change Request" class="hidden post-change-option">
                     </form>
-                    <form action="{{request.script_root}}/download_change_history" method="GET" target = "_blank" style="float: right;">
+                    <form action="{{url_for('export.download_change_history')}}" method="GET" target = "_blank" style="float: right;">
                         <input id="submit-submission" type="submit" value="Download Change Summary" class="hidden post-change-option">
                     </form>
                     <input id="save-change-btn" type="button" value="Save current changes" class="hidden post-change-option">

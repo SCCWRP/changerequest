@@ -43,7 +43,7 @@ def main():
 
     eng = current_app.eng
 
-    # routine to grab the uploaded file 
+    # routine to grab the uploaded file
     files = request.files.getlist('files[]')
     print("files")
     print(files)

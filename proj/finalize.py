@@ -1,4 +1,4 @@
-from flask import Blueprint, session, render_template, g, jsonify, current_app
+from flask import Blueprint, session, render_template, g, jsonify, current_app, redirect, url_for
 import pandas as pd
 import json
 import os
@@ -11,6 +11,11 @@ finalize = Blueprint('finalize', __name__)
 @finalize.route("/final_submit", methods = ['GET', 'POST'])
 @login_required
 def savechanges():
+    
+    if not session.get('sessionid'):
+        # likely they got to this page when they shouldnt have, for example, entering the url manually
+        return redirect(url_for('login.index'))
+    
     eng = g.eng
 
     sessionid = session.get('sessionid')

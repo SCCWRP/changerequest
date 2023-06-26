@@ -199,14 +199,14 @@ def main():
     # Get the submission_data from the session variable. 
     # This should be switched to being a temp table rather than an excel file path
     # df_origin = pd.read_excel(session['original_data_filepath'])    
-    df_origin = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['origin_tablename']}", eng) \
+    df_origin = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['origin_tablename']} ORDER BY objectid", eng) \
         .replace('',np.NaN) \
         .replace('NA',np.NaN) \
         .replace("'=","=") # For resqualcode
 
     
     # Get the current modified submission
-    df_modified = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['modified_tablename']}", eng) \
+    df_modified = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['modified_tablename']} ORDER BY objectid", eng) \
         .replace('',np.NaN) \
         .replace('NA',np.NaN) \
         .replace("'=","=") # For resqualcode
@@ -435,6 +435,9 @@ def main():
         added_records.to_excel(writer, sheet_name = "Added", index = False)
         deleted_records.to_excel(writer, sheet_name = "Deleted", index = False)
 
+        # assign excel row index to the modified records dataframe, just after writing it out. This way we can map objectid to the row index of the excel file
+        modified_records['excel_row_index'] = modified_records.index + 1
+
         # Coloring the changed cells
         print('# Coloring the changed cells')
         workbook = writer.book
@@ -453,7 +456,6 @@ def main():
         # Basically we are translating the objectid and column name to the excel row/column index
         print('# Basically we are translating the objectid and column name to the excel row/column index')
         accepted_highlight_cells = modified_records \
-            .assign(excel_row_index = modified_records.index + 1 ) \
             .merge(
                 hislog_accepted_changes,
                 on = ['objectid'],
@@ -479,7 +481,6 @@ def main():
         # Now get the rejected cells
         print('# Now get the rejected cells')
         rejected_highlight_cells = modified_records \
-            .assign(excel_row_index = modified_records.index + 1 ) \
             .merge(
                 hislog_rejected_changes, 
                 on = ['objectid'], 

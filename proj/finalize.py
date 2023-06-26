@@ -192,7 +192,7 @@ UPDATE RECORDS: (See attached SQL file)\n
                     session.get('submissionid'),
                     session.get('sessionid'),
                     #sql,
-                    f"UPDATE {os.environ.get('CHANGE_HISTORY_TABLE')} SET change_processed = 'Yes' WHERE change_id = {session['sessionid']}"
+                    f"UPDATE {os.environ.get('CHANGE_HISTORY_TABLE')} SET change_processed = 'Yes' WHERE change_id = {session['sessionid']} RETURNING *"
                 ),
                 files = [session.get('comparison_path'), session.get('sql_filepath')],
                 server = current_app.config.get('MAIL_SERVER')

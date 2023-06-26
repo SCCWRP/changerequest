@@ -370,11 +370,16 @@ def main():
                 list(zip(*[added_records[c] for c in added_records.columns]))
             )
         ) \
-        .replace("%","%%")
+        .replace("%","%%") \
+        if not added_records.empty \
+        else ' -- (No Added Records) -- ' 
 
     # Now get the SQL for deleting records, which is a lot less complicated
+    # if no deleted records, just make the delete records SQL an empty string so that nothing goes in the SQL file
     print("Now get the SQL for deleting records, which is a lot less complicated")
-    delete_records_sql = f"DELETE FROM {tablename} WHERE objectid IN ({','.join([str(int(x)) for x in deleted_records.objectid.tolist()])})"
+    delete_records_sql = f"DELETE FROM {tablename} WHERE objectid IN ({','.join([str(int(x)) for x in deleted_records.objectid.tolist()])})" \
+        if not deleted_records.empty \
+        else ' -- (No Deleted Records) -- '
 
     # print(hislog)
     # print(add_records_sql)
@@ -391,12 +396,19 @@ def main():
     # Write hislog to a SQL file rather than excel, per Paul's request to leave it out of the excel file
     #hislog.to_excel(writer, sheet_name = "SQL statements",index = False)
     with open(sql_filepath, 'w') as f:
+        f.write('BEGIN;\n')
+        f.write("-- CHANGED RECORDS --\n")
         f.write(';\n'.join(hislog))
-        f.write(";\n\n")
+        f.write("\n;\n\n")
+        f.write("-- ADDED RECORDS --\n")
         f.write(add_records_sql)
-        f.write(";\n\n")
+        f.write("\n;\n\n")
+        f.write("-- DELETED RECORDS --\n")
         f.write(delete_records_sql)
-        f.write(";")
+        f.write("\n;\n\n")
+        f.write(f"-- Change History Table Update - run when the change has been processed and finalized -- \n")
+        f.write(f"UPDATE {os.environ.get('CHANGE_HISTORY_TABLE')} SET change_processed = 'Yes' WHERE change_id = {session['sessionid']} RETURNING *; --\n")
+        f.write('COMMIT;\n')
         f.close()
     
     session['sql_filepath'] = sql_filepath

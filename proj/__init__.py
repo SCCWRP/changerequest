@@ -89,6 +89,12 @@ app.config.update(CUSTOM_CONFIG)
 # set the database connection string, database, and type of database we are going to point our application at
 app.eng = create_engine(os.environ.get('DB_CONNECTION_STRING'))
 
+# Prevent re-logging in - make it a "permanent" session
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(minutes=10080)
+
 # set the database connection string, database, and type of database we are going to point our application at
 #app.eng = create_engine(environ.get("DB_CONNECTION_STRING"))
 def connect_db():

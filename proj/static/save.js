@@ -5,9 +5,9 @@ export const saveChanges = function() {
         let table = document.querySelector('div.records-display-inner-container table');
         let rows = table.querySelectorAll('tr');
 
-        // show the loader gif
-        // script root is a global, defined in script tags in the head of the HTML document
-        document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
+        // show loader gif
+        const loadingModal = document.getElementById('loading-modal');
+        loadingModal.style.display = 'block';
 
         let tableJSON = Array.from(rows).slice(1).map(row => {
             let record = new Object();
@@ -50,6 +50,8 @@ export const saveChanges = function() {
             formatDataTable(data);
             tableNavigation();
             addTips();
+            // hide loader gif
+            loadingModal.style.display = 'none';
             return data;
         })
         .catch(err => {

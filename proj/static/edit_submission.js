@@ -11,6 +11,10 @@ import { saveChanges } from "./save.js";
         event.preventDefault();
         event.stopPropagation();
 
+        // show loader gif
+        const loadingModal = document.getElementById('loading-modal');
+        loadingModal.style.display = 'block';
+
         /* unhide the datatable containers */
         Array.prototype.slice.call(document.querySelectorAll(".datatable-container")).map(
             c => {
@@ -20,7 +24,7 @@ import { saveChanges } from "./save.js";
         document.getElementById('change-report-container').classList.remove('hidden');
 
 
-        document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
+        document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loader.gif">`;
 
         //const dropped_files = event.originalEvent.dataTransfer.files;
         const dropped_files = document.querySelector('[type=file]').files;
@@ -60,6 +64,9 @@ import { saveChanges } from "./save.js";
         )
 
         addTips();
+        
+        // hide loader gif
+        loadingModal.style.display = 'none';
         
         return data;
     })

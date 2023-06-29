@@ -25,7 +25,7 @@ export const saveChanges = function() {
 
    // show the loader gif
    // script root is a global, defined in script tags in the head of the HTML document
-   document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
+   document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loader.gif">`;
 
    // Send the edited records to the server
    fetch(`/${$SCRIPT_ROOT}/compare`, {

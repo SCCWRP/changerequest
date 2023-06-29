@@ -144,6 +144,11 @@
         </div>
     </div>
 </div>
+<div id="loading-modal" class="modal">
+    <div class="modal-content">
+        <img id="loader-gif" src="{{url_for('static', filename='loader.gif')}}" alt="Loading..." />
+    </div>
+</div>
 {% endblock %}
 {% block tooltip %}
 <div class="tooltip" id="changed-cell-tooltip">

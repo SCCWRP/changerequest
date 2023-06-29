@@ -12,25 +12,11 @@ from .utils.mail import send_mail
 from .utils.db import get_primary_key
 from .core import core
 from .custom import *
-import os, sys
+import os
 
+# To view all data in print statements when debugging
+pd.set_option('display.max_columns', None)
 
-
-# # initialize session variable
-# session['errors'] = {}
-# goal is for the session['errors'] variable to look like this
-# So we can store all errors in one place
-"""
-{
-    "table": tablename,
-    "dtype": dtype,
-    "rows":badrows,
-    "columns":badcolumn,
-    "error_type":error_type,
-    "core_error" : is_core_error,
-    "error_message":error_message
-}
-"""
 
 ###############################################################
 # These routes are set up for javascript to fetch information #
@@ -374,9 +360,11 @@ def main():
     print(hislog)
     
 
-    # After generating the update statements, generate the SQL for adding records
     print("After generating the update statements, generate the SQL for adding records")
-    #added_records.objectid = f"sde.next_rowid('sde','{tablename}')"
+    # After generating the update statements, generate the SQL for adding records
+    # We are tacking on the system fields because those will need to be included in the SQL statement 
+    # However, we will remove them after the SQL is generated, so that they are not displayed to the user
+
     added_records['created_user'] = "change request app"
     added_records['created_date'] = pd.Timestamp(session['sessionid'], unit = 's').strftime("%Y-%m-%d %H:%M:%S")
     for k in session.get('login_fields').keys():
@@ -424,23 +412,17 @@ def main():
         if not added_records.empty \
         else ' -- (No Added Records) -- ' 
 
-    # Now get the SQL for deleting records, which is a lot less complicated
+    # Now get the SQL for deleting records, which is a lot less complicated (Just need objectids of those records being deleted)
     # if no deleted records, just make the delete records SQL an empty string so that nothing goes in the SQL file
     print("Now get the SQL for deleting records, which is a lot less complicated")
     delete_records_sql = f"DELETE FROM {tablename} WHERE objectid IN ({','.join([str(int(x)) for x in deleted_records.objectid.tolist()])})" \
         if not deleted_records.empty \
         else ' -- (No Deleted Records) -- '
 
-    # print(hislog)
-    # print(add_records_sql)
-    # print(delete_records_sql)
 
-    #########################
-    # --  Write to Excel -- #
-    #########################
-
-    print("changed_indices")
-    print(changed_indices)
+    #######################################
+    # --  Write to Excel and SQL files -- #
+    #######################################
 
     # Later should be done with os.path.join
     sql_filepath = f"{os.getcwd()}/files/{session['sessionid']}.sql"
@@ -475,27 +457,22 @@ def main():
     path_to_highlighted_excel =  f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx"
     session['comparison_path'] = path_to_highlighted_excel
 
-    # the variables which will be used for marking the excel file 
-    # hislog_accepted_changes and hislog_rejected_changes
-    # Were defined above - before the part that generates the SQL statements for updating the data
-    pd.set_option('display.max_columns', None)
-    print("hislog_accepted_changes")
-    print(hislog_accepted_changes)
-    print("hislog_rejected_changes")
-    print(hislog_rejected_changes)
-    print("modified_records")
-    print(modified_records)
-    print("modified_records objectid")
-    print(modified_records.objectid)
 
     print("writing report to excel")
+    # This needed to be put in a "with" block so that it automatically saves
+    # writer.save() is deprecated now (June 29, 2023)
     with pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}}) as writer:
 
-        original_data =  original_data[ ['objectid'] + [c for c in original_data.columns if c != 'objectid'] ]
-        modified_records =  modified_records[ ['objectid'] + [c for c in modified_records.columns if c != 'objectid'] ]
-        added_records =  added_records[ ['objectid'] + [c for c in added_records.columns if c != 'objectid'] ]
-        deleted_records =  deleted_records[ ['objectid'] + [c for c in deleted_records.columns if c != 'objectid'] ]
+        original_data =  original_data[ ['objectid'] + [c for c in original_data.columns if c not in ['objectid', *current_app.system_fields]  ] ]
+        modified_records =  modified_records[ ['objectid'] + [c for c in modified_records.columns if c not in ['objectid', *current_app.system_fields]  ] ]
+        deleted_records =  deleted_records[ ['objectid'] + [c for c in deleted_records.columns if c not in ['objectid', *current_app.system_fields]  ] ]
+        added_records = added_records[ ['objectid'] + [c for c in added_records.columns if c not in ['objectid', *current_app.system_fields]  ] ]
 
+        # added records objectid is a function call to the next_rowid function
+        # This shouldnt be displayed to the user
+        added_records = added_records.assign(objectid = -220)
+        
+        # Write them to the "comparison" excel file (the change summary)
         original_data.to_excel(writer, sheet_name = "Original", index = False)
         modified_records.to_excel(writer, sheet_name = "Modified", index = False)
         added_records.to_excel(writer, sheet_name = "Added", index = False)
@@ -507,6 +484,10 @@ def main():
         rejected_color = workbook.add_format({'bg_color':'#FF0000'})
         accepted_color = workbook.add_format({'bg_color':'#42f590'})
         worksheet = writer.sheets["Modified"]
+
+        # the variables below which are used for marking the excel file 
+        #   (hislog_accepted_changes and hislog_rejected_changes)
+        #   were defined above - before the part that generates the SQL statements for updating the data
 
         # make objectid an int just in case it turned into a float somehow
         print('# make objectid an int just in case it turned into a float somehow')
@@ -525,8 +506,6 @@ def main():
                 on = ['objectid'],
                 how = 'inner'
             )
-        print("accepted_highlight_cells")
-        print(accepted_highlight_cells)
 
         if not accepted_highlight_cells.empty:
             # now the dataframe has excel row, objectid, and changed column name
@@ -539,8 +518,6 @@ def main():
             ).tolist()
         else:
             accepted_highlight_cells = []
-        print("accepted_highlight_cells list")
-        print(accepted_highlight_cells)
 
         # Now get the rejected cells
         print('# Now get the rejected cells')
@@ -551,8 +528,6 @@ def main():
                 on = ['objectid'], 
                 how = 'inner'
             )
-        print("rejected_highlight_cells")
-        print(rejected_highlight_cells)
         
         if not rejected_highlight_cells.empty:
             # now the dataframe has excel row, objectid, and changed column name
@@ -566,13 +541,15 @@ def main():
         else:
             rejected_highlight_cells = []
 
-        print("rejected_highlight_cells list")
-        print(rejected_highlight_cells)
 
         # highlight changes is defined in utils
         # Made it a function since later we likely will distinguish between highlighting an accepted change vs a rejected change, which will have different formatting
         # cells arg here should be a tuple of numbers. xlsxwriter can highlight based on coordinates of the cell, not column names
         # NOTE Soon there will be two of these - one for accepted changes (green) and another for rejected changes (red)
+        # (Above note may have been resolved - June 29, 2023)
+        
+        # NOTE I think i also want to somehow include the warnings - that would be something that would take a lot longer to implement.
+        # For sure something to add after we get a basic functioning app that is ready for outside people to use
         highlight_changes(
             worksheet = worksheet, color = accepted_color, cells = accepted_highlight_cells
         )
@@ -580,13 +557,14 @@ def main():
             worksheet = worksheet, color = rejected_color, cells = rejected_highlight_cells
         )
     
-    # deprecated method
-    # writer._save()
     print("Successfully wrote to Excel")
 
-
-
-
+    print("modified_records")
+    print(modified_records)
+    print("added_records")
+    print(added_records)
+    print("deleted_records")
+    print(deleted_records)
     return jsonify(
         tbl = htmltable(modified_records, _id = "changes-display-table"), 
         addtbl = htmltable(added_records, editable = False),

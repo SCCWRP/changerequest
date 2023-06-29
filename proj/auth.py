@@ -12,7 +12,7 @@ from datetime import datetime
 from .utils.mail import send_mail
 from .utils.token import generate_confirmation_token, confirm_token
 from .models import User
-from .forms import SignupForm, LoginForm, EmailForm
+from .forms import SignupForm, LoginForm, EmailForm, ResetPasswordForm
 from . import login_manager, db
 
 
@@ -104,6 +104,7 @@ def signin():
                     flash("You have not yet confirmed your email address")
                     return redirect(url_for('auth.confirm_email'))
                 session['session_user_email'] = user.email
+                session['session_user_agency'] = user.organization
                 return redirect(next_page or url_for('login.index'))
             flash('Invalid username/password combination')
             return redirect(url_for('auth.signin'))
@@ -168,3 +169,63 @@ def confirm_email():
     return redirect(url_for('auth.signin'))
 
 
+@auth_bp.route("/forgot_password", methods=['GET', 'POST'])
+def reset_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('login.index'))
+
+    form = EmailForm(submit_label='Send Password Reset Email')
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+
+        if user:
+            token = generate_confirmation_token(user.email)
+            url = os.path.join(request.url_root, 'auth', 'reset_password', f"{token}")
+
+            # TODO create password_reset_email.jinja2
+            html = render_template('password_reset_email.jinja2', confirm_url = url)
+            send_mail(current_app.send_from, [user.email], 'Change Request App Email Confirmation', html = html, server = current_app.config.get('MAIL_SERVER'))
+            flash('An email has been sent with instructions to reset your password.', 'info')
+            return redirect(url_for('login.index'))
+        else:    
+            flash(f"Email address {form.email.data} not found", 'info')
+
+    return render_template('reset_request.jinja2', title='Reset Password', form=form)
+
+
+@auth_bp.route("/reset_password/<token>", methods=['GET', 'POST'], strict_slashes=False)
+def reset_password(token):
+    
+    # No token provided? Take them to the password reset request page
+    if token is None:
+        return redirect(url_for('auth.reset_request'))
+
+    # Are they already signed in? Then they shouldn't come to this page
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))  # Redirect to main page instead of login
+
+    # Confirm the token
+    try:
+        email = confirm_token(token)
+        if not email:
+            raise Exception("Token expired or invalid")
+    except Exception as e:
+        flash(str(e))
+        return redirect(url_for('login.index'))  # Redirect to main page instead of login
+    
+    user = User.query.filter_by(email=email).first()  # Retrieve user
+
+    # If there is no user with this email, redirect them
+    if user is None:
+        flash('There is no account with this email. You must register first.')
+        return redirect(url_for('auth.signup'))
+
+    form = ResetPasswordForm()
+    
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        flash('Your password has been updated! You are now able to log in', 'success')
+        return redirect(url_for('auth.signin'))
+
+    return render_template('reset_password.jinja2', title='Reset Password', form=form)

@@ -15,12 +15,15 @@ th {
     border: 1px solid black;
     padding: 3px;
 } 
+
+
 .dataTable {
     border: 1px solid black;
     border-radius: 3px;
     height: 500px; 
     width: 100%; 
     overflow: auto;
+    position: relative;
     
 }
 .dataTable::-webkit-scrollbar {
@@ -63,4 +66,90 @@ th {
 
 #changed-records-datatable-container {
     margin-top:0.5rem;
+}
+
+.tooltip#changed-cell-tooltip {
+    position: absolute;
+    padding: 10px;
+    background-color: #ffffff;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    display: none;
+    opacity: 1;
+    z-index: 1000; /* to ensure the tooltip appears on top */
+    overflow: visible; /* Add this to ensure the triangle is not cut off */
+}
+/* Create the triangle using a pseudo element */
+.tooltip:after {
+    content: "";
+    position: absolute;
+    bottom: -10px; /* Position the triangle - adjust as needed */
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent; /* Size of the triangle - adjust as needed */
+    border-right: 10px solid transparent; /* Size of the triangle - adjust as needed */
+    border-top: 10px solid #fff; /* Size and color of the triangle - adjust as needed */
+}
+
+.tooltip .title {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.tooltip .content {
+    font-size: 14px;
+}
+
+.changed-cell {
+    cursor: pointer;
+}
+
+/* Hide all datatable containers by default */
+.datatable-container {
+    display: none;
+}
+
+/* Show the active datatable container */
+.datatable-container.active {
+    display: block;
+}
+
+/* Additional style for active tab */
+.btn.datatable-tab-button.active {
+    background-color: darkblue !important;  /* Using !important to override Bootstrap's active style */
+    color: #fff;
+}
+.btn.datatable-tab-button {
+    margin: 0.5rem;
+}
+
+.records-display-inner-container {
+    border: 1px solid black;
+    border-radius: 3px;
+    position: relative;
+    height: 500px;
+    overflow: auto;
+}
+
+
+.records-display-inner-container thead th {
+    border: 1px solid black;
+    position: sticky;
+    top: 0;
+    z-index:2
+}
+
+.records-display-inner-container thead th {
+    border: 1px solid black;
+    position: sticky;
+    top: 0;
+    background-color: #dbdbdb;
+    z-index: 1; /* This ensures the header is drawn over the table rows when scrolling */
+    margin-bottom: 2px;
+    box-shadow: 0px -2px 0px 0px black, 0px 2px 0px 0px black;
+}
+
+.records-display-inner-container table {
+    width: 100%;
 }

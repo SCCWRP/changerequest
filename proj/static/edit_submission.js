@@ -10,6 +10,16 @@ import { saveChanges } from "./save.js";
     uploadForm.addEventListener("submit", async function(event){
         event.preventDefault();
         event.stopPropagation();
+
+        /* unhide the datatable containers */
+        Array.prototype.slice.call(document.querySelectorAll(".datatable-container")).map(
+            c => {
+                c.classList.remove("hidden")
+            }
+        )
+        document.getElementById('change-report-container').classList.remove('hidden');
+
+
         document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loading.gif">`;
 
         //const dropped_files = event.originalEvent.dataTransfer.files;
@@ -30,30 +40,19 @@ import { saveChanges } from "./save.js";
         console.log(data);
         console.log(data.addtbl);
         console.log(data.deltbl);
-
         
-        /* unhide the datatable containers, only if there are changed records
-            We will always unhide the changed_records container though */
-        Array.prototype.slice.call(document.querySelectorAll(".datatable-container")).map(
-            c => {
-                if ( c.classList.contains("addedrecords") & (data.addtbl !== '') ) {
-                    c.classList.remove("hidden")
-                }
-                if ( c.classList.contains("deletedrecords") & (data.deltbl !== '') ) {
-                    c.classList.remove("hidden")
-                }
-                if ( c.classList.contains("changedrecords") ) {
-                    c.classList.remove("hidden")
-                }
-            }
-        )
-        
-        document.querySelector(".records-display-inner-container").innerHTML = data.tbl;
-        document.querySelector(".added-records-display-inner-container").innerHTML = data.addtbl;
-        document.querySelector(".deleted-records-display-inner-container").innerHTML = data.deltbl;
+        document.querySelector("#changed-records-display-inner-container").innerHTML = data.tbl;
+        document.querySelector("#added-records-display-inner-container").innerHTML = data.addtbl;
+        document.querySelector("#deleted-records-display-inner-container").innerHTML = data.deltbl;
 
         // call function that formats the table
         formatDataTable(data);
+
+        // Add table navigation listeners since elements are being created when the "changed records" table gets created
+        tableNavigation()
+
+        // Scroll it into view
+        document.getElementById('change-report-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         // show buttons
         Array.prototype.slice.call(document.querySelectorAll(".post-change-option")).map(
@@ -76,16 +75,71 @@ import { saveChanges } from "./save.js";
 
 })()
 
+
+// (function(){
+
+// })()
+
+
+window.addEventListener("load", function(){
+
+    // select the uploadForm that we are going to be submitting the user's file with
+    const uploadForm = document.querySelector("#upload-form");
+
+    // Drag and Drop listener
+    // Prevent defaults on drag events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    // Highlight drop area when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        document.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        document.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        document.body.style.backgroundColor = '#cccccc'; // Use your own highlight style
+    }
+
+    function unhighlight(e) {
+        document.body.style.backgroundColor = ''; // Reset the highlight style
+    }
+
+    // Handle dropped files
+    document.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        let files = e.dataTransfer.files;
+
+        // Get the file input and set its files property
+        let fileInput = document.querySelector('input#file');
+        fileInput.files = files;
+
+        // Submit the form
+        // uploadForm.submit();
+        const event = new Event('submit', {cancelable: true});
+        uploadForm.dispatchEvent(event);
+
+    }
+})
+
+
+
 // /* Saving changes when they edit in the browser */
 // (function(){
     
 // })()
 
 
-// /* hit enter and go to next cell - this function lives in html_to_json.js, but it just unfocuses from the current element */
-// (function(){
-
-// })()
 
 // /* global change */
 // (function(){

@@ -43,7 +43,7 @@ def main():
 
     eng = current_app.eng
 
-    # routine to grab the uploaded file 
+    # routine to grab the uploaded file
     files = request.files.getlist('files[]')
     print("files")
     print(files)
@@ -188,7 +188,7 @@ def main():
     print(sys.getsizeof(session))
     if not errors_dataframe.empty:
         return jsonify(
-            tbl = htmltable(errors_dataframe),
+            tbl = htmltable(errors_dataframe, _id = "changes-display-table"),
             changed_indices = rejected_changes, 
             accepted_changes = [], 
             rejected_changes = rejected_changes, 
@@ -199,14 +199,14 @@ def main():
     # Get the submission_data from the session variable. 
     # This should be switched to being a temp table rather than an excel file path
     # df_origin = pd.read_excel(session['original_data_filepath'])    
-    df_origin = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['origin_tablename']}", eng) \
+    df_origin = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['origin_tablename']} ORDER BY objectid", eng) \
         .replace('',np.NaN) \
         .replace('NA',np.NaN) \
         .replace("'=","=") # For resqualcode
 
     
     # Get the current modified submission
-    df_modified = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['modified_tablename']}", eng) \
+    df_modified = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['modified_tablename']} ORDER BY objectid", eng) \
         .replace('',np.NaN) \
         .replace('NA',np.NaN) \
         .replace("'=","=") # For resqualcode
@@ -263,7 +263,7 @@ def main():
         "ObjectID of an accepted change was not found among the objectID's of the modified records"
     
     # History log for accepted changes
-    hislog = pd.DataFrame({
+    hislog_accepted_changes = pd.DataFrame({
         'objectid'     :   [int(item['objectid']) for item in accepted_changes],
         'tablename'    :   tablename,
         'changed_cols' :   [item['colname'] for item in accepted_changes],
@@ -284,16 +284,16 @@ def main():
         ]   
     })
     
-    if not hislog.empty:
+    if not hislog_accepted_changes.empty:
 
         print("# 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map")
         # 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map
-        for col in hislog.columns:
-            hislog[col] = hislog[col].apply(lambda x: str(x) if pd.notnull(x) else '')
+        for col in hislog_accepted_changes.columns:
+            hislog_accepted_changes[col] = hislog_accepted_changes[col].apply(lambda x: str(x) if pd.notnull(x) else '')
         
         # Creating the SQL statement to update records
         print("history log")
-        hislog = hislog \
+        hislog = hislog_accepted_changes \
             .groupby(["objectid","tablename"]) \
             .apply(
                 # Set to NULL if they deleted the value
@@ -317,8 +317,12 @@ def main():
         print(hislog)
 
         hislog = hislog.tolist() if isinstance(hislog, pd.Series) else []
+
+        # view_changed_records_sql is in response to Zaib's request to view the data before committing the transaction
+        view_changed_records_sql = f"SELECT * FROM {session.get('tablename')} WHERE objectid IN {tuple(hislog_accepted_changes.objectid.sort_values().unique())}"
     else:
         hislog = []
+        view_changed_records_sql = f" -- No Changed Records -- "
 
     print("hislog")
     print(hislog)
@@ -370,11 +374,16 @@ def main():
                 list(zip(*[added_records[c] for c in added_records.columns]))
             )
         ) \
-        .replace("%","%%")
+        .replace("%","%%") \
+        if not added_records.empty \
+        else ' -- (No Added Records) -- ' 
 
     # Now get the SQL for deleting records, which is a lot less complicated
+    # if no deleted records, just make the delete records SQL an empty string so that nothing goes in the SQL file
     print("Now get the SQL for deleting records, which is a lot less complicated")
-    delete_records_sql = f"DELETE FROM {tablename} WHERE objectid IN ({','.join([str(int(x)) for x in deleted_records.objectid.tolist()])})"
+    delete_records_sql = f"DELETE FROM {tablename} WHERE objectid IN ({','.join([str(int(x)) for x in deleted_records.objectid.tolist()])})" \
+        if not deleted_records.empty \
+        else ' -- (No Deleted Records) -- '
 
     # print(hislog)
     # print(add_records_sql)
@@ -391,12 +400,22 @@ def main():
     # Write hislog to a SQL file rather than excel, per Paul's request to leave it out of the excel file
     #hislog.to_excel(writer, sheet_name = "SQL statements",index = False)
     with open(sql_filepath, 'w') as f:
+        f.write('BEGIN;\n')
+        f.write("-- CHANGED RECORDS --\n")
         f.write(';\n'.join(hislog))
-        f.write(";\n\n")
+        f.write("\n;\n\n")
+        f.write("-- ADDED RECORDS --\n")
         f.write(add_records_sql)
-        f.write(";\n\n")
+        f.write("\n;\n\n")
+        f.write("-- DELETED RECORDS --\n")
         f.write(delete_records_sql)
-        f.write(";")
+        f.write("\n;\n\n")
+        f.write("-- View changed data before transaction commit:\n")
+        f.write(view_changed_records_sql)
+        f.write("\n\n")
+        f.write(f"-- Change History Table Update - run when the change has been processed and finalized -- \n")
+        f.write(f"UPDATE {os.environ.get('CHANGE_HISTORY_TABLE')} SET change_processed = 'Yes' WHERE change_id = {session['sessionid']} RETURNING *; --\n")
+        f.write('COMMIT;\n')
         f.close()
     
     session['sql_filepath'] = sql_filepath
@@ -409,30 +428,20 @@ def main():
     path_to_highlighted_excel =  f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx"
     session['comparison_path'] = path_to_highlighted_excel
 
+    # the variables which will be used for marking the excel file 
+    # hislog_accepted_changes and hislog_rejected_changes
+    # Were defined above - before the part that generates the SQL statements for updating the data
+    pd.set_option('display.max_columns', None)
+    print("hislog_accepted_changes")
+    print(hislog_accepted_changes)
+    print("hislog_rejected_changes")
+    print(hislog_rejected_changes)
+    print("modified_records")
+    print(modified_records)
+    print("modified_records objectid")
+    print(modified_records.objectid)
 
-    # # History log for accepted changes
-    hislog = pd.DataFrame({
-        'objectid'     :   [int(item['objectid']) for item in accepted_changes],
-        'tablename'    :   tablename,
-        'changed_cols' :   [item['colname'] for item in accepted_changes],
-        'newvalue'     :   [
-            modified_records[modified_records['objectid'] == item['objectid']][f"{item['colname']}"].values[0]
-            for item in accepted_changes
-        ]   
-    })
-    
-    # History log of rejected changes - not to be used until we highlight the excel files
-    hislog_rejected_changes = pd.DataFrame({
-        'objectid'     :   [int(item['objectid']) for item in rejected_changes],
-        'tablename'    :   tablename,
-        'changed_cols' :   [item['colname'] for item in rejected_changes],
-        'newvalue'     :   [
-            modified_records[modified_records['objectid'] == item['objectid']][f"{item['colname']}"].values[0]
-            for item in rejected_changes
-        ]   
-    })
-
-
+    print("writing report to excel")
     with pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}}) as writer:
 
         original_data =  original_data[ ['objectid'] + [c for c in original_data.columns if c != 'objectid'] ]
@@ -445,50 +454,74 @@ def main():
         added_records.to_excel(writer, sheet_name = "Added", index = False)
         deleted_records.to_excel(writer, sheet_name = "Deleted", index = False)
 
+        # assign excel row index to the modified records dataframe, just after writing it out. This way we can map objectid to the row index of the excel file
+        modified_records['excel_row_index'] = modified_records.index + 1
+
         # Coloring the changed cells
+        print('# Coloring the changed cells')
         workbook = writer.book
         rejected_color = workbook.add_format({'bg_color':'#FF0000'})
         accepted_color = workbook.add_format({'bg_color':'#42f590'})
         worksheet = writer.sheets["Modified"]
 
         # make objectid an int just in case it turned into a float somehow
+        print('# make objectid an int just in case it turned into a float somehow')
         modified_records.objectid = modified_records.objectid.astype(int)
-        hislog.objectid = hislog.objectid.astype(int)
+        hislog_accepted_changes.objectid = hislog_accepted_changes.objectid.astype(int)
         hislog_rejected_changes.objectid = hislog_rejected_changes.objectid.astype(int)
 
         # get the accepted change cells, according to the location in the excel file
+        print('# get the accepted change cells, according to the location in the excel file')
         # Basically we are translating the objectid and column name to the excel row/column index
+        print('# Basically we are translating the objectid and column name to the excel row/column index')
         accepted_highlight_cells = modified_records \
-            .assign(excel_row_index = modified_records.index + 1 ) \
             .merge(
-                hislog, 
-                on = ['objectid'], 
+                hislog_accepted_changes,
+                on = ['objectid'],
                 how = 'inner'
             )
-        # now the dataframe has excel row, objectid, and changed column name
-        accepted_highlight_cells['excel_col_index'] = accepted_highlight_cells.changed_cols.apply(
-            lambda c: modified_records.columns.get_loc(c)
-        )
-        accepted_highlight_cells = accepted_highlight_cells.apply(
+        print("accepted_highlight_cells")
+        print(accepted_highlight_cells)
+
+        if not accepted_highlight_cells.empty:
+            # now the dataframe has excel row, objectid, and changed column name
+            print('# now the dataframe has excel row, objectid, and changed column name')
+            accepted_highlight_cells['excel_col_index'] = accepted_highlight_cells.changed_cols.apply(
+                lambda c: modified_records.columns.get_loc(c)
+            )
+            accepted_highlight_cells = accepted_highlight_cells.apply(
                 lambda row: (row.excel_row_index, row.excel_col_index), axis = 1
             ).tolist()
+        else:
+            accepted_highlight_cells = []
+        print("accepted_highlight_cells list")
+        print(accepted_highlight_cells)
 
         # Now get the rejected cells
+        print('# Now get the rejected cells')
         rejected_highlight_cells = modified_records \
-            .assign(excel_row_index = modified_records.index + 1 ) \
             .merge(
                 hislog_rejected_changes, 
                 on = ['objectid'], 
                 how = 'inner'
             )
-        # now the dataframe has excel row, objectid, and changed column name
-        rejected_highlight_cells['excel_col_index'] = rejected_highlight_cells.changed_cols.apply(
-            lambda c: modified_records.columns.get_loc(c)
-        )
-        rejected_highlight_cells = rejected_highlight_cells.apply(
+        print("rejected_highlight_cells")
+        print(rejected_highlight_cells)
+        
+        if not rejected_highlight_cells.empty:
+            # now the dataframe has excel row, objectid, and changed column name
+            print('# now the dataframe has excel row, objectid, and changed column name')
+            rejected_highlight_cells['excel_col_index'] = rejected_highlight_cells.changed_cols.apply(
+                lambda c: modified_records.columns.get_loc(c)
+            )
+            rejected_highlight_cells = rejected_highlight_cells.apply(
                 lambda row: (row.excel_row_index, row.excel_col_index), axis = 1
             ).tolist()
+        else:
+            rejected_highlight_cells = []
 
+        print("rejected_highlight_cells list")
+        print(rejected_highlight_cells)
 
         # highlight changes is defined in utils
         # Made it a function since later we likely will distinguish between highlighting an accepted change vs a rejected change, which will have different formatting
@@ -510,8 +543,8 @@ def main():
 
     return jsonify(
         tbl = htmltable(modified_records, _id = "changes-display-table"), 
-        addtbl = htmltable(added_records),
-        deltbl = htmltable(deleted_records), 
+        addtbl = htmltable(added_records, editable = False),
+        deltbl = htmltable(deleted_records, editable = False), 
         changed_indices = changed_indices, 
         accepted_changes = accepted_changes, 
         rejected_changes = rejected_changes, 

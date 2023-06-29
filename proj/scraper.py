@@ -52,7 +52,7 @@ def lookuplists():
                             if fieldname in scraper_results:
 
                                 # 2nd arg is the "axis" argument, i assume
-                                scraper_results = scraper_results.drop(fieldname, 1)
+                                scraper_results = scraper_results.drop(fieldname, axis = 1)
                         
                         # turn dataframe into dictionary object
                         scraper_json = scraper_results.to_dict('records')

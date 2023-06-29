@@ -48,6 +48,7 @@ export const saveChanges = function() {
             console.log(data);
             document.querySelector(".records-display-inner-container").innerHTML = data.tbl;
             formatDataTable(data);
+            tableNavigation();
             addTips();
             return data;
         })

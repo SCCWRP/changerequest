@@ -2,11 +2,12 @@ import os, json
 import numpy as np
 import pandas as pd
 import psycopg2
-from flask import Flask, g
+from flask import Flask, g, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from sqlalchemy import create_engine
+from datetime import timedelta
 
 if not os.path.exists(os.path.join(os.getcwd(), 'proj', 'custom', '__init__.py')):
     open(os.path.join(os.getcwd(), 'proj', 'custom', '__init__.py'), 'w').close()
@@ -88,6 +89,12 @@ app.config.update(CUSTOM_CONFIG)
 
 # set the database connection string, database, and type of database we are going to point our application at
 app.eng = create_engine(os.environ.get('DB_CONNECTION_STRING'))
+
+# Prevent re-logging in - make it a "permanent" session
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(minutes=10080)
 
 # set the database connection string, database, and type of database we are going to point our application at
 #app.eng = create_engine(environ.get("DB_CONNECTION_STRING"))

@@ -1,7 +1,7 @@
 #########################################################
 # This file contains code that handles the login screen #
 #########################################################
-from flask import Blueprint, request, jsonify, session, render_template, current_app, g
+from flask import Blueprint, request, redirect, url_for, jsonify, session, render_template, current_app, g
 import pandas as pd
 from datetime import datetime
 import os
@@ -22,7 +22,10 @@ def index():
 @login.route("/edit-submission", methods = ['GET', 'POST'])
 @login_required
 def edit_data():
-    return render_template("edit-submission.jinja2", login_fields = session.get('login_fields'))
+    if session.get('login_fields'):
+        return render_template("edit-submission.jinja2", login_fields = session.get('login_fields'))
+    return redirect(url_for('login.index'))
+    
 
 @login.route('/login_values')
 @login_required
@@ -66,21 +69,32 @@ def sessiondata():
     authorized_user = current_user.is_authorized == 'yes'
     print("authorized_user")
     print(authorized_user)
+    maintainers = current_app.config.get('maintainers')
+    maintainers_str = ','.join(maintainers)
+    
+    if not current_user.email_confirmed == 'yes':
+            return jsonify(user_error_msg=f"You have not yet confirmed your email ({current_user.email})")
+    
     if not authorized_user:
-        maintainers = current_app.config.get('maintainers')
-        maintainers_str = ','.join(maintainers)
         return jsonify(user_error_msg=f"SCCWRP has not yet approved the user {current_user.email} to edit data with this application. Contact {maintainers_str}")
     if not admin_user:
         if current_user.organization != login_organization:
-            return jsonify(user_error_msg=f"You ({current_user.email}) are not authorized to edit data from {login_organization}")
-    if not current_user.email_confirmed == 'yes':
-            return jsonify(user_error_msg=f"You have not yet confirmed your email ({current_user.email})")
+            return jsonify(
+                user_error_msg=f"You ({current_user.email}) are not authorized to edit data from {login_organization}. If you believe you received this message in error, contact {maintainers_str}"
+            )
+
+    # check if they correctly filled out the form by seeing whether there is a submissionID that was found
+    if not request.form.get('submissionid'):
+        return jsonify(
+            user_error_msg="Submission ID Not found - Make sure that you completely filled out the form"
+        )
 
     # Get the current sessionid, later used as a changeID
     session['sessionid'] = unixtime(datetime.today())
 
     # SubmissionID and Tablename are in every form, thats how the HTML was set up
     session['submissionid'] = request.form.get('submissionid')
+
     session['submissiondate'] = pd.Timestamp(int(request.form.get('submissionid')), unit = 's').strftime('%Y-%m-%d %H:%M:%S')
     session['tablename'] = request.form.get('tablename')
     # now provided in auth form
@@ -134,12 +148,27 @@ def sessiondata():
     # Remove Not NULL constraints from the tmp tables, at least for the immutable fields
     # It doesnt matter if those fields get populated in the tmp tables
     # we need to do this with psycopg sql injection prevention and all that
+
+    print("Querying for columns that the temp tables actually have so we dont attempt to modify non existent columns")
+    existing_cols = set(
+        pd.read_sql(
+            f"""
+                (SELECT DISTINCT column_name FROM information_schema.columns WHERE table_name LIKE '{session['modified_tablename']}')
+                UNION ALL
+                (SELECT DISTINCT column_name FROM information_schema.columns WHERE table_name LIKE '{session['origin_tablename']}')
+            """,
+            eng
+        ) \
+        .column_name.unique()
+    )
+    print("DONE querying for columns that the temp tables actually have so we dont attempt to modify non existent columns")
+
     rmsql = [
         f"""
             ALTER TABLE tmp.{session['modified_tablename']} ALTER COLUMN {col} DROP NOT NULL;
             ALTER TABLE tmp.{session['origin_tablename']} ALTER COLUMN {col} DROP NOT NULL;
         """
-        for col in current_app.immutable_fields
+        for col in set(current_app.immutable_fields).intersection(existing_cols)
     ]
 
     # objectid cant be part of the system fields - it must be preserved during the comparison

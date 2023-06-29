@@ -46,7 +46,10 @@ export const saveChanges = function() {
         })
         .then(data => {
             console.log(data);
-            document.querySelector(".records-display-inner-container").innerHTML = data.tbl;
+            document.querySelector("#changed-records-display-inner-container").innerHTML = data.tbl;
+            document.querySelector("#added-records-display-inner-container").innerHTML = data.addtbl;
+            document.querySelector("#deleted-records-display-inner-container").innerHTML = data.deltbl;
+            
             formatDataTable(data);
             tableNavigation();
             addTips();

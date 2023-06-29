@@ -91,9 +91,14 @@ def main():
     # We need to have a well defined primary key, otherwise, we cant process changes for the table
     assert len(pkey_columns) > 0, f"There is no primary key for the table {tablename}"
 
-    ########################################
-    # Here we'll attempt to check the data #
-    ########################################
+
+
+
+    # ------------------------------------------------ CORE CHECKS ---------------------------------------------------------#
+    # Here we'll attempt to check the data 
+    # First, we run Core checks, load records that pass, display bad records in the browser 
+    # if all records pass core checks and are loaded to their tmp table, we will run custom checks
+    
 
     errors = [] # start fresh every time they attempt a change
     warnings = [] # start fresh every time they attempt a change
@@ -106,34 +111,14 @@ def main():
     errors = [*errors, *core_output.get('core_errors')]
     warnings = [*warnings, *core_output.get('core_warnings')]
 
-    if errors == []:
-        # custom checks
-        try:
-            print(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
-            
-            custom_check_func = eval(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
-        except Exception as e:
-            # To be honest this error should only occur if the app is misconfigured, so i should probably just go with assert statements to enforce this
-            raise Exception(f"In main.py - unable to get the custom checks function: {e}")
 
-        custom_output = custom_check_func(df_modified, session.get('tablename'))
-        errors = [*errors, *custom_output.get('errors')]
-        warnings = [*warnings, *custom_output.get('warnings')]
-
-
-    print("df_modified")
-    print(df_modified.columns)
-    print(df_modified)
-
-    # The check functions write to the session variable
-    # errors = session['errors']
-    print(errors)
     badrows = set([r['row_number'] for e in errors for r in e['rows']])
     errors_dataframe = df_modified[df_modified.index.isin([n - 1 for n in badrows])]
     good_dataframe = df_modified[~df_modified.index.isin([n - 1 for n in badrows])]
-    print('good_dataframe')
-    print(good_dataframe)
     
+    
+    # Records that pass Core checks can go  into the database without integrity errors.
+    # Load those records to their table while returning their problematic records for them to examine and possibly edit.
     goodrecords_sql = \
         """
         INSERT INTO tmp.{} 
@@ -184,8 +169,8 @@ def main():
         for e in errors for r in e['rows']
     ]
 
-
-    print(sys.getsizeof(session))
+    # If there were errors, stop them here.
+    # We put their good records to their tmp table already, here we will return to them their problematic records for them to examine and possibly edit
     if not errors_dataframe.empty:
         return jsonify(
             tbl = htmltable(errors_dataframe, _id = "changes-display-table"),
@@ -197,11 +182,10 @@ def main():
             rejected_changes = rejected_changes, 
             errors = errors
         )
+    # ------------------------------------------------ END CORE CHECKS ---------------------------------------------------------#
 
-
-    # Get the submission_data from the session variable. 
-    # This should be switched to being a temp table rather than an excel file path
-    # df_origin = pd.read_excel(session['original_data_filepath'])    
+    # Get their original submission data from the tmp table that was created and populated from the time they logged in
+    # (The time they selected the login fields associated with their submission that they are editing, and a submissionid was selected)
     df_origin = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['origin_tablename']} ORDER BY objectid", eng) \
         .replace('',np.NaN) \
         .replace('NA',np.NaN) \
@@ -209,10 +193,69 @@ def main():
 
     
     # Get the current modified submission
+    # After this, we run custom checks on the entirety of their submission
+    # entirity? entirety? however its spelled...
     df_modified = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['modified_tablename']} ORDER BY objectid", eng) \
         .replace('',np.NaN) \
         .replace('NA',np.NaN) \
         .replace("'=","=") # For resqualcode
+
+
+
+    # ---------------------------------------------- CUSTOM CHECKS ROUTINE ------------------------------------------------- #
+    # Core checks only needs to be run on the data given, to see if it may go into the database. 
+    # Custom checks, however, needs to run on their entire submission. 
+    # For this reason, we first wait for all the data to be loaded to the table (modified records table) and then run custom checks on that entire dataframe
+
+    if errors == []:
+        # custom checks
+        try:
+            # Print the custom checks function name
+            print(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
+            
+            # eval on the string of the function name should return the actual function, and it will be stored in the variable "custom_check_func" and get called later
+            custom_check_func = eval(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
+        
+        except Exception as e:
+            # To be honest this error should only occur if the app is misconfigured, so i should probably just go with assert statements to enforce this
+            raise Exception(f"In main.py - unable to get the custom checks function: {e}")
+
+        # run custom checks
+        custom_output = custom_check_func(df_modified, session.get('tablename'))
+        errors = [*errors, *custom_output.get('errors')]
+        warnings = [*warnings, *custom_output.get('warnings')]
+
+        # distinguish an accepted change from a rejected change based on errors
+        # its a rejected change if we find that change in the errors
+        rejected_changes = [
+            {
+                'rownumber': r['row_number'], 
+                'colname': e['columns'], 
+                'objectid': r['objectid']
+            } 
+            for e in errors for r in e['rows']
+        ]
+        print(errors)
+    
+        # Same routine as was applied for core checks
+        # display problem records in the browser for them to examine and edit
+        # It may also be beneficial in the future to send them to the checker app and let them know they can check data without submitting, 
+        #   if they want a more detailed and intuitive error report.
+        badrows = set([r['row_number'] for e in errors for r in e['rows']])
+        errors_dataframe = df_modified[df_modified.index.isin([n - 1 for n in badrows])]
+        good_dataframe = df_modified[~df_modified.index.isin([n - 1 for n in badrows])]
+        if not errors_dataframe.empty:
+            return jsonify(
+                tbl = htmltable(errors_dataframe, _id = "changes-display-table"),
+                # make added and deleted records show up in the browser as empty tables - we dont concern ourselves with any of that until they fix their errors
+                addtbl = htmltable(errors_dataframe.drop(errors_dataframe.index), editable = False),
+                deltbl = htmltable(errors_dataframe.drop(errors_dataframe.index), editable = False), 
+                changed_indices = rejected_changes, 
+                accepted_changes = [], 
+                rejected_changes = rejected_changes, 
+                errors = errors
+            )
+    # ------------------------------------------- END CUSTOM CHECKS ROUTINE ----------------------------------------------- #
 
 
 
@@ -399,9 +442,9 @@ def main():
     print("changed_indices")
     print(changed_indices)
 
+    # Later should be done with os.path.join
     sql_filepath = f"{os.getcwd()}/files/{session['sessionid']}.sql"
-    # Write hislog to a SQL file rather than excel, per Paul's request to leave it out of the excel file
-    #hislog.to_excel(writer, sheet_name = "SQL statements",index = False)
+    # Write hislog to a SQL file
     with open(sql_filepath, 'w') as f:
         f.write('BEGIN;\n')
         f.write("-- CHANGED RECORDS --\n")
@@ -428,6 +471,7 @@ def main():
     if not os.path.exists(highlight_dir):
         os.makedirs(highlight_dir)
     
+    # Later should be done with os.path.join
     path_to_highlighted_excel =  f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx"
     session['comparison_path'] = path_to_highlighted_excel
 

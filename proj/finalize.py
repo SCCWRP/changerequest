@@ -94,7 +94,7 @@ def savechanges():
                         {sessionid},
                         {submissionid},
                         '{login_info}',
-                        '{session_user_agency}'
+                        '{session_user_agency}',
                         '{session_user_email}',
                         '{pd.Timestamp(sessionid, unit = 's').strftime("%Y-%m-%d %H:%M:%S")}',
                         'No'

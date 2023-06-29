@@ -106,19 +106,19 @@ def main():
     errors = [*errors, *core_output.get('core_errors')]
     warnings = [*warnings, *core_output.get('core_warnings')]
 
-    # if errors == []:
-    #     # custom checks
-    #     try:
-    #         print(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
+    if errors == []:
+        # custom checks
+        try:
+            print(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
             
-    #         custom_check_func = eval(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
-    #     except Exception as e:
-    #         # To be honest this error should only occur if the app is misconfigured, so i should probably just go with assert statements to enforce this
-    #         raise Exception(f"In main.py - unable to get the custom checks function: {e}")
+            custom_check_func = eval(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
+        except Exception as e:
+            # To be honest this error should only occur if the app is misconfigured, so i should probably just go with assert statements to enforce this
+            raise Exception(f"In main.py - unable to get the custom checks function: {e}")
 
-    #     custom_output = custom_check_func(df_modified, session.get('tablename'))
-    #     errors = [*errors, *custom_output.get('errors')]
-    #     warnings = [*warnings, *custom_output.get('warnings')]
+        custom_output = custom_check_func(df_modified, session.get('tablename'))
+        errors = [*errors, *custom_output.get('errors')]
+        warnings = [*warnings, *custom_output.get('warnings')]
 
 
     print("df_modified")
@@ -189,6 +189,9 @@ def main():
     if not errors_dataframe.empty:
         return jsonify(
             tbl = htmltable(errors_dataframe, _id = "changes-display-table"),
+            # make added and deleted records show up in the browser as empty tables - we dont concern ourselves with any of that until they fix their errors
+            addtbl = htmltable(errors_dataframe.drop(errors_dataframe.index), editable = False),
+            deltbl = htmltable(errors_dataframe.drop(errors_dataframe.index), editable = False), 
             changed_indices = rejected_changes, 
             accepted_changes = [], 
             rejected_changes = rejected_changes, 

@@ -84,6 +84,17 @@
                                     This application runs a comparison between your previous submission, and the edited excel file which you upload, 
                                     and then makes the requested modifications to the submission.
                                 </p>
+                                <p>
+                                    <strong>Be advised</strong>, <em><u>if you alter a column which is part of the table's primary key</u></em>, 
+                                    the app will interpret the change as one record being replaced by another, since the primary key columns are what is used to uniquely identify a record.
+                                    So if you altered a primary key column, the changes will show up in the "added records" and "deleted records" tabs.
+                                    The primary key for the current table that you are editing is:
+                                </p>
+                                <p>
+                                {% for col in pkey_cols %}
+                                    <strong>{{col}}</strong>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                                </p>
                             </div>
                         </div>
                     

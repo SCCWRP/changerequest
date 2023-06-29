@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 from .utils.generic import unixtime
 from .utils.login import get_login_field, get_submission_ids
+from .utils.db import get_primary_key
 
 from flask_login import login_required, current_user
 
@@ -22,8 +23,18 @@ def index():
 @login.route("/edit-submission", methods = ['GET', 'POST'])
 @login_required
 def edit_data():
+
+    # Need this to fetch primary key columns to display to the user
+    # if session login_fields is defined, then tablename should automatically be defined
     if session.get('login_fields'):
-        return render_template("edit-submission.jinja2", login_fields = session.get('login_fields'))
+        assert \
+            session.get('tablename') is not None, \
+            "Couldnt find tablename in the session variable - this means the application did not work as expected when the user entered the login fields to search for a submissionid"    
+        
+        tablename = session.get('tablename')
+        pkey_cols = get_primary_key(tablename, g.eng)
+        return render_template("edit-submission.jinja2", login_fields = session.get('login_fields'), pkey_cols = pkey_cols)
+    
     return redirect(url_for('login.index'))
     
 

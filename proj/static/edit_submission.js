@@ -60,7 +60,16 @@ import { saveChanges } from "./save.js";
 
         // show buttons
         Array.prototype.slice.call(document.querySelectorAll(".post-change-option")).map(
-            b => b.classList.remove("hidden")
+            (b) => {
+                if (data.errors.length == 0) {
+                    // No errors? unhide all post change buttons
+                    b.classList.remove("hidden");
+                } else {
+                    // Errors? Make sure the buttons that should NOT show, dont show
+                    // Only the button to save changes after editing should show so that they can fix their errors
+                    b.classList.contains('clean-data-post-change-option') ? b.classList.add("hidden") : b.classList.remove("hidden");
+                }
+            }
         )
 
         addTips();

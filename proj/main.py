@@ -10,6 +10,7 @@ from .utils.comparison import highlight_changes, compare
 from .utils.html import htmltable
 from .utils.mail import send_mail
 from .utils.db import get_primary_key
+from .utils.generic import ordered_columns
 from .core import core
 from .custom import *
 import os
@@ -158,6 +159,9 @@ def main():
     # If there were errors, stop them here.
     # We put their good records to their tmp table already, here we will return to them their problematic records for them to examine and possibly edit
     if not errors_dataframe.empty:
+        # order the columns
+        errors_dataframe = errors_dataframe[ordered_columns(errors_dataframe, session.get('column_order'))]
+        
         return jsonify(
             tbl = htmltable(errors_dataframe, _id = "changes-display-table"),
             # make added and deleted records show up in the browser as empty tables - we dont concern ourselves with any of that until they fix their errors
@@ -230,6 +234,11 @@ def main():
         badrows = set([r['row_number'] for e in errors for r in e['rows']])
         errors_dataframe = df_modified[df_modified.index.isin([n - 1 for n in badrows])]
         good_dataframe = df_modified[~df_modified.index.isin([n - 1 for n in badrows])]
+
+        # order the columns
+        errors_dataframe = errors_dataframe[ordered_columns(errors_dataframe, session.get('column_order'))]
+        good_dataframe = good_dataframe[ordered_columns(good_dataframe, session.get('column_order'))]
+
         if not errors_dataframe.empty:
             return jsonify(
                 tbl = htmltable(errors_dataframe, _id = "changes-display-table"),
@@ -467,6 +476,12 @@ def main():
         modified_records =  modified_records[ ['objectid'] + [c for c in modified_records.columns if c not in ['objectid', *current_app.system_fields]  ] ]
         deleted_records =  deleted_records[ ['objectid'] + [c for c in deleted_records.columns if c not in ['objectid', *current_app.system_fields]  ] ]
         added_records = added_records[ ['objectid'] + [c for c in added_records.columns if c not in ['objectid', *current_app.system_fields]  ] ]
+        
+        # after removing the system fields, order tables according to the column_order
+        original_data =  original_data[ ordered_columns(original_data, session.get('column_order')) ]
+        modified_records =  modified_records[ ordered_columns(modified_records, session.get('column_order')) ]
+        deleted_records =  deleted_records[ ordered_columns(deleted_records, session.get('column_order')) ]
+        added_records = added_records[ ordered_columns(added_records, session.get('column_order')) ]
 
         # added records objectid is a function call to the next_rowid function
         # This shouldnt be displayed to the user

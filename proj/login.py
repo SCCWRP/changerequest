@@ -113,6 +113,47 @@ def sessiondata():
     session['dtype'] = request.form.get('dtype')
 
     tablename = session.get('tablename')
+    
+    # prevent sql injection
+    assert tablename in pd.read_sql("SELECT DISTINCT table_name FROM information_schema.tables;", g.eng).table_name.values, f"{tablename} not found in the information schema"
+
+    # define the column order based on the column_order table
+    column_order_table_exists = len(pd.read_sql("SELECT * FROM information_schema.tables WHERE table_name = 'column_order'; ", g.eng)) > 0
+    if column_order_table_exists:
+        
+        column_order = pd.read_sql(
+            f"""
+                WITH colorder AS (
+                    SELECT column_name 
+                    FROM column_order 
+                    WHERE table_name = '{tablename}' 
+                    ORDER BY custom_column_position, column_name
+                ),
+                infschemaorder AS (
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = '{tablename}' 
+                    AND column_name NOT IN (SELECT column_name FROM colorder)
+                )
+                SELECT * FROM colorder 
+                UNION ALL 
+                SELECT * FROM infschemaorder;
+            """,
+            g.eng
+        ).column_name.tolist()
+    else:
+        column_order = pd.read_sql(
+            f"""
+                SELECT column_name 
+                    FROM information_schema.columns 
+                WHERE 
+                    table_name = '{tablename}' 
+            """,
+            g.eng
+        ).column_name.tolist()
+    
+    session['column_order'] = column_order
+
 
     # Get the current sessionid, later used as a changeID
     session['sessionid'] = unixtime(datetime.today())

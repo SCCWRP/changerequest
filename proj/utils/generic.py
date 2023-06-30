@@ -54,3 +54,9 @@ def change_history_update(row, original_df, sessionid, submissionid, login_info,
         """
     
     return sql
+
+def ordered_columns(df, column_order):
+    ordered_columns = [c for c in column_order if c in df.columns]
+    remaining_columns = [c for c in df.columns if c not in column_order]
+    return [*ordered_columns, *remaining_columns]
+    

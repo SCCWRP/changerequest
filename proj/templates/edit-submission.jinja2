@@ -84,6 +84,17 @@
                                     This application runs a comparison between your previous submission, and the edited excel file which you upload, 
                                     and then makes the requested modifications to the submission.
                                 </p>
+                                <p>
+                                    <strong>Be advised</strong>, <em><u>if you alter a column which is part of the table's primary key</u></em>, 
+                                    the app will interpret the change as one record being replaced by another, since the primary key columns are what is used to uniquely identify a record.
+                                    So if you altered a primary key column, the changes will show up in the "added records" and "deleted records" tabs.
+                                    The primary key for the current table that you are editing is:
+                                </p>
+                                <p>
+                                {% for col in pkey_cols %}
+                                    <strong>{{col}}</strong>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                                </p>
                             </div>
                         </div>
                     
@@ -133,15 +144,20 @@
                         style="float: right;" 
                         onSubmit="(function(){window.onbeforeunload = undefined; return confirm('Are you sure you want to finalize this change request?');})();"
                     >
-                        <input id="finalize-submission" type="submit" value="Finalize Change Request" class="hidden post-change-option">
+                        <input id="finalize-submission" type="submit" value="Finalize Change Request" class="hidden post-change-option clean-data-post-change-option">
                     </form>
                     <form action="{{url_for('export.download_change_history')}}" method="GET" target = "_blank" style="float: right;">
-                        <input id="submit-submission" type="submit" value="Download Change Summary" class="hidden post-change-option">
+                        <input id="submit-submission" type="submit" value="Download Change Summary" class="hidden post-change-option clean-data-post-change-option">
                     </form>
                     <input id="save-change-btn" type="button" value="Save current changes" class="hidden post-change-option">
                 </div>
             </div>
         </div>
+    </div>
+</div>
+<div id="loading-modal" class="modal">
+    <div class="modal-content">
+        <img id="loader-gif" src="{{url_for('static', filename='loader.gif')}}" alt="Loading..." />
     </div>
 </div>
 {% endblock %}

@@ -10,27 +10,14 @@ from .utils.comparison import highlight_changes, compare
 from .utils.html import htmltable
 from .utils.mail import send_mail
 from .utils.db import get_primary_key
+from .utils.generic import ordered_columns
 from .core import core
 from .custom import *
-import os, sys
+import os
 
+# To view all data in print statements when debugging
+pd.set_option('display.max_columns', None)
 
-
-# # initialize session variable
-# session['errors'] = {}
-# goal is for the session['errors'] variable to look like this
-# So we can store all errors in one place
-"""
-{
-    "table": tablename,
-    "dtype": dtype,
-    "rows":badrows,
-    "columns":badcolumn,
-    "error_type":error_type,
-    "core_error" : is_core_error,
-    "error_message":error_message
-}
-"""
 
 ###############################################################
 # These routes are set up for javascript to fetch information #
@@ -78,22 +65,27 @@ def main():
     maxobjid = df_modified.objectid.max()
     df_modified.objectid = df_modified.apply(lambda row: row.name + maxobjid + 1 if pd.isnull(row.objectid) else row.objectid, axis = 1)
     df_modified.objectid = df_modified.objectid.astype(int)
-        
+    
     # Remember tablenames is a global variable of key value pairs (dictionary)
     # with keys being the datatype and the values being the corresponding table(s)
     # eventually this will become painful when/if the changes are done on the tbl tables
     tablename = session.get('tablename')
     
     # Get the merging columns (primarykeys of the table based on tablename)
-    #session['primary_key'] = pkey_columns
+    # session['primary_key'] = pkey_columns
     pkey_columns = get_primary_key(tablename, eng)
 
     # We need to have a well defined primary key, otherwise, we cant process changes for the table
     assert len(pkey_columns) > 0, f"There is no primary key for the table {tablename}"
 
-    ########################################
-    # Here we'll attempt to check the data #
-    ########################################
+
+
+
+    # ------------------------------------------------ CORE CHECKS ---------------------------------------------------------#
+    # Here we'll attempt to check the data 
+    # First, we run Core checks, load records that pass, display bad records in the browser 
+    # if all records pass core checks and are loaded to their tmp table, we will run custom checks
+    
 
     errors = [] # start fresh every time they attempt a change
     warnings = [] # start fresh every time they attempt a change
@@ -106,34 +98,14 @@ def main():
     errors = [*errors, *core_output.get('core_errors')]
     warnings = [*warnings, *core_output.get('core_warnings')]
 
-    if errors == []:
-        # custom checks
-        try:
-            print(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
-            
-            custom_check_func = eval(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
-        except Exception as e:
-            # To be honest this error should only occur if the app is misconfigured, so i should probably just go with assert statements to enforce this
-            raise Exception(f"In main.py - unable to get the custom checks function: {e}")
 
-        custom_output = custom_check_func(df_modified, session.get('tablename'))
-        errors = [*errors, *custom_output.get('errors')]
-        warnings = [*warnings, *custom_output.get('warnings')]
-
-
-    print("df_modified")
-    print(df_modified.columns)
-    print(df_modified)
-
-    # The check functions write to the session variable
-    # errors = session['errors']
-    print(errors)
     badrows = set([r['row_number'] for e in errors for r in e['rows']])
     errors_dataframe = df_modified[df_modified.index.isin([n - 1 for n in badrows])]
     good_dataframe = df_modified[~df_modified.index.isin([n - 1 for n in badrows])]
-    print('good_dataframe')
-    print(good_dataframe)
     
+    
+    # Records that pass Core checks can go  into the database without integrity errors.
+    # Load those records to their table while returning their problematic records for them to examine and possibly edit.
     goodrecords_sql = \
         """
         INSERT INTO tmp.{} 
@@ -184,21 +156,26 @@ def main():
         for e in errors for r in e['rows']
     ]
 
-
-    print(sys.getsizeof(session))
+    # If there were errors, stop them here.
+    # We put their good records to their tmp table already, here we will return to them their problematic records for them to examine and possibly edit
     if not errors_dataframe.empty:
+        # order the columns
+        errors_dataframe = errors_dataframe[ordered_columns(errors_dataframe, session.get('column_order'))]
+        
         return jsonify(
             tbl = htmltable(errors_dataframe, _id = "changes-display-table"),
+            # make added and deleted records show up in the browser as empty tables - we dont concern ourselves with any of that until they fix their errors
+            addtbl = htmltable(errors_dataframe.drop(errors_dataframe.index), editable = False),
+            deltbl = htmltable(errors_dataframe.drop(errors_dataframe.index), editable = False), 
             changed_indices = rejected_changes, 
             accepted_changes = [], 
             rejected_changes = rejected_changes, 
             errors = errors
         )
+    # ------------------------------------------------ END CORE CHECKS ---------------------------------------------------------#
 
-
-    # Get the submission_data from the session variable. 
-    # This should be switched to being a temp table rather than an excel file path
-    # df_origin = pd.read_excel(session['original_data_filepath'])    
+    # Get their original submission data from the tmp table that was created and populated from the time they logged in
+    # (The time they selected the login fields associated with their submission that they are editing, and a submissionid was selected)
     df_origin = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['origin_tablename']} ORDER BY objectid", eng) \
         .replace('',np.NaN) \
         .replace('NA',np.NaN) \
@@ -206,10 +183,74 @@ def main():
 
     
     # Get the current modified submission
+    # After this, we run custom checks on the entirety of their submission
+    # entirity? entirety? however its spelled...
     df_modified = pd.read_sql(f"SELECT {','.join(session['submission_colnames'])} FROM tmp.{session['modified_tablename']} ORDER BY objectid", eng) \
         .replace('',np.NaN) \
         .replace('NA',np.NaN) \
         .replace("'=","=") # For resqualcode
+
+
+
+    # ---------------------------------------------- CUSTOM CHECKS ROUTINE ------------------------------------------------- #
+    # Core checks only needs to be run on the data given, to see if it may go into the database. 
+    # Custom checks, however, needs to run on their entire submission. 
+    # For this reason, we first wait for all the data to be loaded to the table (modified records table) and then run custom checks on that entire dataframe
+
+    if errors == []:
+        # custom checks
+        try:
+            # Print the custom checks function name
+            print(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
+            
+            # eval on the string of the function name should return the actual function, and it will be stored in the variable "custom_check_func" and get called later
+            custom_check_func = eval(current_app.dtypes.get(session.get('dtype')).get('custom_checks_functions').get(session.get('tablename')))
+        
+        except Exception as e:
+            # To be honest this error should only occur if the app is misconfigured, so i should probably just go with assert statements to enforce this
+            raise Exception(f"In main.py - unable to get the custom checks function: {e}")
+
+        # run custom checks
+        custom_output = custom_check_func(df_modified, session.get('tablename'))
+        errors = [*errors, *custom_output.get('errors')]
+        warnings = [*warnings, *custom_output.get('warnings')]
+
+        # distinguish an accepted change from a rejected change based on errors
+        # its a rejected change if we find that change in the errors
+        rejected_changes = [
+            {
+                'rownumber': r['row_number'], 
+                'colname': e['columns'], 
+                'objectid': r['objectid']
+            } 
+            for e in errors for r in e['rows']
+        ]
+        print(errors)
+    
+        # Same routine as was applied for core checks
+        # display problem records in the browser for them to examine and edit
+        # It may also be beneficial in the future to send them to the checker app and let them know they can check data without submitting, 
+        #   if they want a more detailed and intuitive error report.
+        badrows = set([r['row_number'] for e in errors for r in e['rows']])
+        errors_dataframe = df_modified[df_modified.index.isin([n - 1 for n in badrows])]
+        good_dataframe = df_modified[~df_modified.index.isin([n - 1 for n in badrows])]
+
+        # order the columns
+        errors_dataframe = errors_dataframe[ordered_columns(errors_dataframe, session.get('column_order'))]
+        good_dataframe = good_dataframe[ordered_columns(good_dataframe, session.get('column_order'))]
+
+        if not errors_dataframe.empty:
+            return jsonify(
+                tbl = htmltable(errors_dataframe, _id = "changes-display-table"),
+                # make added and deleted records show up in the browser as empty tables - we dont concern ourselves with any of that until they fix their errors
+                addtbl = htmltable(errors_dataframe.drop(errors_dataframe.index), editable = False),
+                deltbl = htmltable(errors_dataframe.drop(errors_dataframe.index), editable = False), 
+                changed_indices = rejected_changes, 
+                accepted_changes = [], 
+                rejected_changes = rejected_changes, 
+                errors = errors
+            )
+    # ------------------------------------------- END CUSTOM CHECKS ROUTINE ----------------------------------------------- #
 
 
 
@@ -328,9 +369,11 @@ def main():
     print(hislog)
     
 
-    # After generating the update statements, generate the SQL for adding records
     print("After generating the update statements, generate the SQL for adding records")
-    #added_records.objectid = f"sde.next_rowid('sde','{tablename}')"
+    # After generating the update statements, generate the SQL for adding records
+    # We are tacking on the system fields because those will need to be included in the SQL statement 
+    # However, we will remove them after the SQL is generated, so that they are not displayed to the user
+
     added_records['created_user'] = "change request app"
     added_records['created_date'] = pd.Timestamp(session['sessionid'], unit = 's').strftime("%Y-%m-%d %H:%M:%S")
     for k in session.get('login_fields').keys():
@@ -378,27 +421,21 @@ def main():
         if not added_records.empty \
         else ' -- (No Added Records) -- ' 
 
-    # Now get the SQL for deleting records, which is a lot less complicated
+    # Now get the SQL for deleting records, which is a lot less complicated (Just need objectids of those records being deleted)
     # if no deleted records, just make the delete records SQL an empty string so that nothing goes in the SQL file
     print("Now get the SQL for deleting records, which is a lot less complicated")
     delete_records_sql = f"DELETE FROM {tablename} WHERE objectid IN ({','.join([str(int(x)) for x in deleted_records.objectid.tolist()])})" \
         if not deleted_records.empty \
         else ' -- (No Deleted Records) -- '
 
-    # print(hislog)
-    # print(add_records_sql)
-    # print(delete_records_sql)
 
-    #########################
-    # --  Write to Excel -- #
-    #########################
+    #######################################
+    # --  Write to Excel and SQL files -- #
+    #######################################
 
-    print("changed_indices")
-    print(changed_indices)
-
+    # Later should be done with os.path.join
     sql_filepath = f"{os.getcwd()}/files/{session['sessionid']}.sql"
-    # Write hislog to a SQL file rather than excel, per Paul's request to leave it out of the excel file
-    #hislog.to_excel(writer, sheet_name = "SQL statements",index = False)
+    # Write hislog to a SQL file
     with open(sql_filepath, 'w') as f:
         f.write('BEGIN;\n')
         f.write("-- CHANGED RECORDS --\n")
@@ -425,37 +462,36 @@ def main():
     if not os.path.exists(highlight_dir):
         os.makedirs(highlight_dir)
     
+    # Later should be done with os.path.join
     path_to_highlighted_excel =  f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx"
     session['comparison_path'] = path_to_highlighted_excel
 
-    # the variables which will be used for marking the excel file 
-    # hislog_accepted_changes and hislog_rejected_changes
-    # Were defined above - before the part that generates the SQL statements for updating the data
-    pd.set_option('display.max_columns', None)
-    print("hislog_accepted_changes")
-    print(hislog_accepted_changes)
-    print("hislog_rejected_changes")
-    print(hislog_rejected_changes)
-    print("modified_records")
-    print(modified_records)
-    print("modified_records objectid")
-    print(modified_records.objectid)
 
     print("writing report to excel")
+    # This needed to be put in a "with" block so that it automatically saves
+    # writer.save() is deprecated now (June 29, 2023)
     with pd.ExcelWriter(path_to_highlighted_excel, engine = 'xlsxwriter',  engine_kwargs={'options': {'strings_to_formulas': False}}) as writer:
 
-        original_data =  original_data[ ['objectid'] + [c for c in original_data.columns if c != 'objectid'] ]
-        modified_records =  modified_records[ ['objectid'] + [c for c in modified_records.columns if c != 'objectid'] ]
-        added_records =  added_records[ ['objectid'] + [c for c in added_records.columns if c != 'objectid'] ]
-        deleted_records =  deleted_records[ ['objectid'] + [c for c in deleted_records.columns if c != 'objectid'] ]
+        original_data =  original_data[ ['objectid'] + [c for c in original_data.columns if c not in ['objectid', *current_app.system_fields]  ] ]
+        modified_records =  modified_records[ ['objectid'] + [c for c in modified_records.columns if c not in ['objectid', *current_app.system_fields]  ] ]
+        deleted_records =  deleted_records[ ['objectid'] + [c for c in deleted_records.columns if c not in ['objectid', *current_app.system_fields]  ] ]
+        added_records = added_records[ ['objectid'] + [c for c in added_records.columns if c not in ['objectid', *current_app.system_fields]  ] ]
+        
+        # after removing the system fields, order tables according to the column_order
+        original_data =  original_data[ ordered_columns(original_data, session.get('column_order')) ]
+        modified_records =  modified_records[ ordered_columns(modified_records, session.get('column_order')) ]
+        deleted_records =  deleted_records[ ordered_columns(deleted_records, session.get('column_order')) ]
+        added_records = added_records[ ordered_columns(added_records, session.get('column_order')) ]
 
+        # added records objectid is a function call to the next_rowid function
+        # This shouldnt be displayed to the user
+        added_records = added_records.assign(objectid = -220)
+        
+        # Write them to the "comparison" excel file (the change summary)
         original_data.to_excel(writer, sheet_name = "Original", index = False)
         modified_records.to_excel(writer, sheet_name = "Modified", index = False)
         added_records.to_excel(writer, sheet_name = "Added", index = False)
         deleted_records.to_excel(writer, sheet_name = "Deleted", index = False)
-
-        # assign excel row index to the modified records dataframe, just after writing it out. This way we can map objectid to the row index of the excel file
-        modified_records['excel_row_index'] = modified_records.index + 1
 
         # Coloring the changed cells
         print('# Coloring the changed cells')
@@ -463,6 +499,10 @@ def main():
         rejected_color = workbook.add_format({'bg_color':'#FF0000'})
         accepted_color = workbook.add_format({'bg_color':'#42f590'})
         worksheet = writer.sheets["Modified"]
+
+        # the variables below which are used for marking the excel file 
+        #   (hislog_accepted_changes and hislog_rejected_changes)
+        #   were defined above - before the part that generates the SQL statements for updating the data
 
         # make objectid an int just in case it turned into a float somehow
         print('# make objectid an int just in case it turned into a float somehow')
@@ -475,13 +515,12 @@ def main():
         # Basically we are translating the objectid and column name to the excel row/column index
         print('# Basically we are translating the objectid and column name to the excel row/column index')
         accepted_highlight_cells = modified_records \
+            .assign(excel_row_index = modified_records.index + 1) \
             .merge(
                 hislog_accepted_changes,
                 on = ['objectid'],
                 how = 'inner'
             )
-        print("accepted_highlight_cells")
-        print(accepted_highlight_cells)
 
         if not accepted_highlight_cells.empty:
             # now the dataframe has excel row, objectid, and changed column name
@@ -494,19 +533,16 @@ def main():
             ).tolist()
         else:
             accepted_highlight_cells = []
-        print("accepted_highlight_cells list")
-        print(accepted_highlight_cells)
 
         # Now get the rejected cells
         print('# Now get the rejected cells')
         rejected_highlight_cells = modified_records \
+            .assign(excel_row_index = modified_records.index + 1) \
             .merge(
                 hislog_rejected_changes, 
                 on = ['objectid'], 
                 how = 'inner'
             )
-        print("rejected_highlight_cells")
-        print(rejected_highlight_cells)
         
         if not rejected_highlight_cells.empty:
             # now the dataframe has excel row, objectid, and changed column name
@@ -520,13 +556,15 @@ def main():
         else:
             rejected_highlight_cells = []
 
-        print("rejected_highlight_cells list")
-        print(rejected_highlight_cells)
 
         # highlight changes is defined in utils
         # Made it a function since later we likely will distinguish between highlighting an accepted change vs a rejected change, which will have different formatting
         # cells arg here should be a tuple of numbers. xlsxwriter can highlight based on coordinates of the cell, not column names
         # NOTE Soon there will be two of these - one for accepted changes (green) and another for rejected changes (red)
+        # (Above note may have been resolved - June 29, 2023)
+        
+        # NOTE I think i also want to somehow include the warnings - that would be something that would take a lot longer to implement.
+        # For sure something to add after we get a basic functioning app that is ready for outside people to use
         highlight_changes(
             worksheet = worksheet, color = accepted_color, cells = accepted_highlight_cells
         )
@@ -534,13 +572,14 @@ def main():
             worksheet = worksheet, color = rejected_color, cells = rejected_highlight_cells
         )
     
-    # deprecated method
-    # writer._save()
     print("Successfully wrote to Excel")
 
-
-
-
+    print("modified_records")
+    print(modified_records)
+    print("added_records")
+    print(added_records)
+    print("deleted_records")
+    print(deleted_records)
     return jsonify(
         tbl = htmltable(modified_records, _id = "changes-display-table"), 
         addtbl = htmltable(added_records, editable = False),

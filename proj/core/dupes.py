@@ -15,8 +15,8 @@ def checkDuplicates(dataframe, tablename, eng, *args, output = None, **kwargs):
     
     pkey = get_primary_key(tablename, eng)
 
-    # For duplicates within session, dataprovider is not necessary to check
-    # Since it is assumed that all records within the submission are from the same dataprovider
+    # We dont want the primary key columns to be part of the system fields
+    # reduce the primary key to be those not found in the system fields
     pkey = [col for col in pkey if col not in current_app.system_fields]
 
     # initialize return value

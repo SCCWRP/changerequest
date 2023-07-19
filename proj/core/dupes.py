@@ -123,7 +123,7 @@ def checkDuplicatesInProduction(dataframe, tablename, eng, *args, output = None,
 
         # merge current recs with a left merge and tack on that "already_in_db" column
         dataframe = dataframe.merge(current_recs, on = pkey, how = 'left')
-
+        dataframe.already_in_db = dataframe.already_in_db.fillna(False)
         # originally
         #badrows = dataframe[dataframe.already_in_db == True].index.tolist() 
         # replace with list of dictionaries, refer to checkDuplicates function above

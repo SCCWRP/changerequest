@@ -56,9 +56,13 @@ def main():
         df_modified = pd.DataFrame.from_records(request.get_json())
         df_modified.replace('', np.NaN, inplace = True)
 
-    # code expects this column to exist
-    if 'objectid' not in [c.lower() for c in df_modified.columns]:
-        df_modified['objectid'] = df_modified.index
+
+    # Code expects this column to exist
+    # NOTE I have edited the code to always overwrite the user's submitted objectid column with the dataframe index
+    # The reason was that i submitted data with duplicated objectid's, due to copy pasting rows, and the app crashed trying to put that in the tmp table
+    # 8/2/2023 - Robert
+    df_modified['objectid'] = df_modified.index
+
 
     # df_modified needs to have the object id's filled in
     print("# df_modified needs to have the object id's filled in")

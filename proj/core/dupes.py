@@ -89,11 +89,7 @@ def checkDuplicatesInProduction(dataframe, tablename, eng, *args, output = None,
     # The session submissionid is omitted from the query because there will be records that exist in the database with the same primary key as the data dropped for the change request.
     current_recs = read_sql(f"SELECT DISTINCT {','.join(pkey)} FROM {tablename} WHERE submissionid != {session.get('submissionid')}", eng)
     
-    
-    import time
-    print("are there current_recs in the database?")
-    print(not current_recs.empty)
-    time.sleep(1)
+
     if not current_recs.empty:
 
     
@@ -149,13 +145,6 @@ def checkDuplicatesInProduction(dataframe, tablename, eng, *args, output = None,
                 axis = 1
             ).values
         ]
-
-        print("badrows")
-        print(badrows)
-        
-        print("tablename")
-        print(tablename)
-        time.sleep(1)
 
         ret = [
             checkData(

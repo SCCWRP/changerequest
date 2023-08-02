@@ -63,7 +63,7 @@ def submissions():
 
     return jsonify(submissions = data)
 
-
+# Based on the fields the user selects, data is saved in the session so we know which data they are editing
 @login.route("/post-session-data", methods = ['GET', 'POST'])
 @login_required
 def sessiondata():

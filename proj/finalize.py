@@ -204,6 +204,14 @@ UPDATE RECORDS: (See attached SQL file)\n
                 # server = '192.168.1.18'
             )
 
+        # At this point, if they got this far, we should clean up the "tmp" schema section
+        eng.execute(
+            f"""
+            DROP TABLE tmp.{session['origin_tablename']};
+            DROP TABLE tmp.{session['modified_tablename']};
+            """
+        )
+
         
         # Use session.pop to clear the specific session data so that they cant finalize their change twice
         datatype = session.pop('dtype', None)

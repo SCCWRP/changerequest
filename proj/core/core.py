@@ -2,7 +2,7 @@ import multiprocessing as mp
 import pandas as pd
 import time
 from itertools import chain
-from .dupes import checkDuplicates
+from .dupes import checkDuplicates, checkDuplicatesInProduction
 from .lookups import checkLookUpLists
 from .metadata import checkNotNull, checkPrecision, checkScale, checkLength, checkDataTypes, checkIntegers
 from .functions import fetch_meta, multitask
@@ -18,6 +18,7 @@ def core(df, tblname, eng, debug = False):
     errs.extend(
         [
             checkDuplicates(df, tblname, eng, meta),
+            checkDuplicatesInProduction(df, tblname, eng, meta),
             checkLookUpLists(df, tblname, eng, meta),
             checkNotNull(df, tblname, eng, meta),
             checkIntegers(df, tblname, eng, meta),
@@ -32,6 +33,7 @@ def core(df, tblname, eng, debug = False):
         multitask(
             [
                 checkDuplicates,
+                checkDuplicatesInProduction,
                 checkLookUpLists,
                 checkNotNull,
                 checkIntegers,

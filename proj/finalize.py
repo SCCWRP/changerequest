@@ -29,25 +29,25 @@ def savechanges():
     try:
         print("getting the changed records")
         changed = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", 
+            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # change to the variables above, to sessionid
             sheet_name = 'Modified'
         ).fillna('')
         
         print("getting the original records")
         original = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", 
+            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # to sessionid
             sheet_name = 'Original'
         ).fillna('')
         
         print("getting the deleted records")
         deleted = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", 
+            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # to sessionid
             sheet_name = 'Deleted'
         ).fillna('')
         
         print("getting the added records")
         added = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", 
+            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # to sessionid
             sheet_name = 'Added'
         ).fillna('')
 

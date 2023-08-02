@@ -330,6 +330,9 @@ def main():
         print("# 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map")
         # 4 iterations of the for loop. Probably doesn't make a difference doing it this way or with map
         for col in hislog_accepted_changes.columns:
+
+            # The items are converted to strings to make it easier to put everything into the sql statements, files, etc
+            # Often they complain about different datatypes numpy.float64's numpy.int64's etc.
             hislog_accepted_changes[col] = hislog_accepted_changes[col].apply(lambda x: str(x) if pd.notnull(x) else '')
         
         # Creating the SQL statement to update records
@@ -360,7 +363,23 @@ def main():
         hislog = hislog.tolist() if isinstance(hislog, pd.Series) else []
 
         # view_changed_records_sql is in response to Zaib's request to view the data before committing the transaction
-        view_changed_records_sql = f"SELECT * FROM {session.get('tablename')} WHERE objectid IN {tuple(hislog_accepted_changes.objectid.sort_values().unique())}"
+        view_changed_records_sql = """
+                SELECT * FROM {} 
+                WHERE objectid IN (
+                    {}
+                )
+            """ \
+            .format(
+                session.get('tablename'),
+                
+                # joining objectids by newlines because there seemed to be strange behavior in writing them all on one line
+                # when a large number of records were modified, it seemed to add a newline randomly without our permission about 1000 characters in
+                # so the workaround is to just join each objectif by a comma and newline
+                # also, we have to convert them to integers in order to sort correctly, and then put them back to strings,
+                #  so that the join function gets what it expects
+                ",\n".join(hislog_accepted_changes.objectid.astype(int).sort_values().astype(str).unique())
+            )
+        
     else:
         hislog = []
         view_changed_records_sql = f" -- No Changed Records -- "

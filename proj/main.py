@@ -371,7 +371,7 @@ def main():
                 SELECT * FROM {} 
                 WHERE objectid IN (
                     {}
-                )
+                );
             """ \
             .format(
                 session.get('tablename'),

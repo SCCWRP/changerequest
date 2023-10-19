@@ -1,69 +1,77 @@
-from flask import Blueprint, session, render_template, g, jsonify, current_app
+from flask import Blueprint, session, render_template, g, jsonify, current_app, redirect, url_for
 import pandas as pd
 import json
 import os
 from .utils.generic import change_history_update
 from .utils.mail import send_mail
 
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 finalize = Blueprint('finalize', __name__)
 @finalize.route("/final_submit", methods = ['GET', 'POST'])
 @login_required
 def savechanges():
+    
+    if not session.get('sessionid'):
+        # likely they got to this page when they shouldnt have, for example, entering the url manually
+        return redirect(url_for('login.index'))
+    
     eng = g.eng
 
     sessionid = session.get('sessionid')
     submissionid = session.get('submissionid')
     login_info = json.dumps(session.get('login_fields')).replace("'","")
+
+    # Both provided when the user signs in (auth.signin)
     session_user_email = str(session.get('session_user_email'))
+    session_user_agency = str(session.get('session_user_agency'))
 
     try:
         print("getting the changed records")
         changed = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", 
+            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # change to the variables above, to sessionid
             sheet_name = 'Modified'
         ).fillna('')
         
         print("getting the original records")
         original = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", 
+            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # to sessionid
             sheet_name = 'Original'
         ).fillna('')
         
         print("getting the deleted records")
         deleted = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", 
+            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # to sessionid
             sheet_name = 'Deleted'
         ).fillna('')
         
         print("getting the added records")
         added = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", 
+            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # to sessionid
             sheet_name = 'Added'
         ).fillna('')
 
         for colname,datatype in changed.dtypes.to_dict().items():
             if datatype == 'datetime64[ns]':
-                changed[colname] = changed[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
+                changed[colname] = changed[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
             if colname == 'resqualcode':
                 changed[colname] = changed[colname].str.replace("'","")
         
         for colname,datatype in original.dtypes.to_dict().items():
             if datatype == 'datetime64[ns]':
-                original[colname] = original[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
+                original[colname] = original[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
             if colname == 'resqualcode':
                 original[colname] = original[colname].str.replace("'","")
         
         for colname,datatype in added.dtypes.to_dict().items():
             if datatype == 'datetime64[ns]':
-                added[colname] = added[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
+                added[colname] = added[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
             if colname == 'resqualcode':
                 added[colname] = added[colname].str.replace("'","")
         
         for colname,datatype in deleted.dtypes.to_dict().items():
             if datatype == 'datetime64[ns]':
-                deleted[colname] = deleted[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S"))
+                deleted[colname] = deleted[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
             if colname == 'resqualcode':
                 deleted[colname] = deleted[colname].str.replace("'","")
 
@@ -73,7 +81,7 @@ def savechanges():
   
         change_history_records = [
             *changed.apply(
-                lambda row: change_history_update(row, original, sessionid, submissionid, login_info, session_user_email),
+                lambda row: change_history_update(row, original, sessionid, submissionid, login_info, session_user_agency, session_user_email),
                 axis = 1
             ) \
             .values,
@@ -86,6 +94,7 @@ def savechanges():
                         {sessionid},
                         {submissionid},
                         '{login_info}',
+                        '{session_user_agency}',
                         '{session_user_email}',
                         '{pd.Timestamp(sessionid, unit = 's').strftime("%Y-%m-%d %H:%M:%S")}',
                         'No'
@@ -102,6 +111,7 @@ def savechanges():
                         {sessionid},
                         {submissionid},
                         '{login_info}',
+                        '{session_user_agency}',
                         '{session_user_email}',
                         '{pd.Timestamp(sessionid, unit = 's').strftime("%Y-%m-%d %H:%M:%S")}',
                         'No'
@@ -118,6 +128,7 @@ def savechanges():
                 change_id,
                 submissionid,
                 login_fields,
+                requesting_agency,
                 requesting_person,
                 change_date,
                 change_processed
@@ -138,11 +149,37 @@ def savechanges():
             sql = sqlfile.read()
             sqlfile.close()
 
+            # email for user
             send_mail(
                 current_app.send_from,
                 [
                     *current_app.maintainers,
                     str(session.get('session_user_email'))
+                ],
+                f'Data Change Request made for {current_app.config.get("projectname")}',
+                """A database change request was made from {} :\n\n\
+Datatype: {}\n\
+Original Submission Date: {}\n\
+Original Submission ID: {}\n\
+Change ID: {}\n\n\
+SCCWRP Staff has been notified and they will let you know when the change has been finalized.
+\n\
+                """.format(
+                    str(session.get('session_user_email')),
+                    session.get('dtype'),
+                    session.get('submissiondate'),
+                    session.get('submissionid'),
+                    session.get('sessionid')
+                ),
+                files = [session.get('comparison_path')],
+                server = current_app.config.get('MAIL_SERVER')
+            )
+
+            # email for staff
+            send_mail(
+                current_app.send_from,
+                [
+                    *current_app.maintainers
                 ],
                 f'Data Change Request made for {current_app.config.get("projectname")}',
                 """A database change request was made from {} :\n\n\
@@ -160,24 +197,39 @@ UPDATE RECORDS: (See attached SQL file)\n
                     session.get('submissionid'),
                     session.get('sessionid'),
                     #sql,
-                    f"UPDATE {os.environ.get('CHANGE_HISTORY_TABLE')} SET change_processed = 'Yes' WHERE change_id = {session['sessionid']}"
+                    f"UPDATE {os.environ.get('CHANGE_HISTORY_TABLE')} SET change_processed = 'Yes' WHERE change_id = {session['sessionid']} RETURNING *"
                 ),
                 files = [session.get('comparison_path'), session.get('sql_filepath')],
                 server = current_app.config.get('MAIL_SERVER')
                 # server = '192.168.1.18'
             )
 
+        # At this point, if they got this far, we should clean up the "tmp" schema section
+        eng.execute(
+            f"""
+            DROP TABLE tmp.{session['origin_tablename']};
+            DROP TABLE tmp.{session['modified_tablename']};
+            """
+        )
+
         
+        # Use session.pop to clear the specific session data so that they cant finalize their change twice
+        datatype = session.pop('dtype', None)
+        session_user_email = current_user.email
+        submissiondate = session.pop('submissiondate', None) 
+        submissionid = session.pop('submissionid', None) 
+        login_fields = session.pop('login_fields', None)
+        change_id = session.pop('sessionid', None)
 
         return render_template(
             "thankyou.jinja2",
             success = True,
-            datatype = session.get('dtype'),
-            session_user_email = str(session.get('session_user_email')), 
-            submissiondate = session.get('submissiondate'), 
-            submissionid = session.get('submissionid'), 
-            login_fields = session.get('login_fields'),
-            change_id = session.get('sessionid')
+            datatype = datatype,
+            session_user_email = session_user_email,
+            submissiondate = submissiondate,
+            submissionid = submissionid,
+            login_fields = login_fields,
+            change_id = change_id
         )
 
     except Exception as e:
@@ -198,15 +250,24 @@ UPDATE RECORDS: (See attached SQL file)\n
             files = [session.get('comparison_path')],
             server = current_app.config.get('MAIL_SERVER')
         )
+
+        # Use session.pop to clear the specific session data so that they cant finalize their change twice
+        session_user_email = current_user.email
+        datatype = session.pop('dtype', None)
+        submissiondate = session.pop('submissiondate', None)
+        submissionid = session.pop('submissionid', None)
+        login_fields = session.pop('login_fields', None)
+        change_id = session.pop('sessionid', None)
+
         return render_template(
             "thankyou.jinja2",
             success = False,
-            datatype = session.get('dtype'),
-            session_user_email = str(session.get('session_user_email')), 
-            submissiondate = session.get('submissiondate'), 
-            submissionid = session.get('submissionid'), 
-            login_fields = session.get('login_fields'),
-            change_id = session.get('sessionid')
+            datatype = datatype,
+            session_user_email = session_user_email,
+            submissiondate = submissiondate,
+            submissionid = submissionid,
+            login_fields = login_fields,
+            change_id = change_id
         )
 
 

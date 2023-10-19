@@ -1,17 +1,6 @@
 {% extends 'base.jinja2' %}
 {% block head %}
 {{ super() }}
-
-    <script type ="text/javascript"> 
-        // i have to figure out a better way fo doing this later
-        // deselects a cell when the enter key is pressed
-        const enterUnfocus = function(event, cell) { 
-            var code = (event.keyCode ? event.keyCode : event.which);
-            if (code == 13) {
-                cell.blur();
-            }
-        }
-    </script>
     <link rel="stylesheet" href="{{url_for('static', filename='edit_submission.css')}}">
     <script type="module" src="{{url_for('static', filename='save.js')}}"></script>
 {% endblock %}
@@ -21,7 +10,7 @@
     <div class="row" style="margin-top: 40px; margin-bottom: 40px;">
         <div class="subEditor card mx-auto">
             <div class="card-header">
-                <h1>Submission Editor</h1>
+                <h1>Submission Editor (Beta)</h1>
             </div>
             <div class="card-body">
                 <div class="container-fluid">
@@ -31,86 +20,151 @@
                     <br>
                     <div class="row">
                         {% for k in login_fields %}
-                        <div class="col-sm-auto">
+                        <div class="col">
                             <h5><strong>{{k}}:</strong> <span id="current-{{k}}">{{login_fields[k]}}</span></h5>
                         </div>
                         {%endfor%}
                     </div>
+
+                </div>
+                <br>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4 box shadow">
+                            <div class="card-header">
+                                <h4>Download Submission File</h4>
+                            </div>
+                            <div class="card-body">
+                                <p>Download the excel spreadsheet of your current data, make your changes, then save.</p>
+                                <div class="download-button-wrap header-element">
+                                    <a href="{{request.script_root}}/submission-download" target="_blank">Download</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-4 box shadow">
+                            <div class="card-header">
+                                <h4>Choose File</h4>
+                            </div>
+                            <div class="card-body">
+                                <p>
+                                    Browse for and select the excel file you would like to upload. 
+                                </p>
+                                <p>
+                                    You may also drag and drop the file anywhere on the page, just like the checker application
+                                </p>
+                                <form method="post" enctype="multipart/form-data" id="upload-form">
+                                    <input id="file" type="file" name = "files[]" style="margin-bottom: 10px;">
+                                    <input type="submit" value="Upload File" name="submit">
+                                </form>
+                                <div class="file-upload-container">
+                                    <div class="file-upload">       
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6 offset-md-3">
-                        <div class="card-deck mb-3" style="margin-top: 40px">
-                            <div class="card mb-4 box shadow">
-                                <div class="card-header">
-                                    <h4>Download Template</h4>
-                                </div>
-                                <div class="card-body">
-                                    <p>Download the excel spreadsheet of the current data, make your changes, then save.</p>
-                                    <div class="download-button-wrap header-element">
-                                        <a href="{{request.script_root}}/submission-download" target="_blank">Download</a>
-                                    </div>
-                                </div>
+                    <div class="col-md-12">
+                        <div class="card mb-12 box shadow">
+                            <div class="card-header">
+                                <h4>Additional Instructions</h4>
                             </div>
-                            <div class="card mb-4 box shadow">
-                                <div class="card-header">
-                                    <h4>Choose File</h4>
-                                </div>
-                                <div class="card-body">
-                                    <p>Browse for and select the excel file you would like to upload.</p>
-                                    <form method="post" enctype="multipart/form-data" id="upload-form">
-                                        <input id="file" type="file" name = "files[]" style="margin-bottom: 10px;">
-                                        <input type="submit" value="Upload File" name="submit">
-                                    </form>
-                                    <div class="file-upload-container">
-                                        <div class="file-upload">       
-                                        </div>
-                                    </div>
+                            <div class="card-body">
+                                <p>
+                                    You may edit the data in the "changed records" table to fix errors, or to make last minute adjustments. 
+                                    However, you will not be allowed to edit the records in the "deleted records" or "added records" tables.
+                                </p>
+                                <p>
+                                    To make adjustments to those tables, you must edit the excel file, refresh the page and re-upload it.
+                                </p>
+                                <p>
+                                    This application runs a comparison between your previous submission, and the edited excel file which you upload, 
+                                    and then makes the requested modifications to the submission.
+                                </p>
+                                <p>
+                                    <strong>Be advised</strong>, <em><u>if you alter a column which is part of the table's primary key</u></em>, 
+                                    the app will interpret the change as one record being replaced by another, since the primary key columns are what is used to uniquely identify a record.
+                                    So if you altered a primary key column, the changes will show up in the "added records" and "deleted records" tabs.
+                                    The primary key for the current table that you are editing is:
+                                </p>
+                                <p>
+                                {% for col in pkey_cols %}
+                                    <strong>{{col}}</strong>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                                </p>
+                            </div>
+                        </div>
+                    
+                    </div>
+                </div>
+                <div id="change-report-container" class="hidden">
+                    <div class="row">
+                        <div id="datatable-tabs">
+                            <button type="button" class="btn btn-primary datatable-tab-button active" data-target="changed-records-datatable-container">Changed Records</button>
+                            <button type="button" class="btn btn-primary datatable-tab-button" data-target="added-records-datatable-container">Added Records</button>
+                            <button type="button" class="btn btn-primary datatable-tab-button" data-target="deleted-records-datatable-container">Deleted Records</button>
+                        </div>
+                    </div>
+                    <div class="datatable-container changedrecords active" id="changed-records-datatable-container">
+                        <span class="datatable-label">Changed Records</span>
+                    
+                        <div id="changed-records-display-inner-container" class="records-display-inner-container"> 
+                            <div id="changed-records-loader-gif-container" class="hidden"></div>
+                            <div id="changed-records-table-container" class="records-table-container"></div>
+                        </div>
+                
+                    
+                    </div>
+                    <div class="datatable-container addedrecords" id="added-records-datatable-container">
+                        <span class="datatable-label">Added Records</span>
+                        <div class="dataTable" style="margin-top: 30px;">
+                            <div id="added-records-display-outer-container" class="records-display-outer-container">
+                                <div id="added-records-display-inner-container" class="records-display-inner-container"> 
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="datatable-container changedrecords" id="changed-records-datatable-container">
-                    <span class="datatable-label">Changed Records</span>
-                    <div class="dataTable" style="margin-top: 30px;">
-                        <div class="records-display-outer-container">
-                            <div class="records-display-inner-container"> 
-                                <div id="changed-records-loader-gif-container" class="hidden"></div>
-                                <div id="changed-records-table-container"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="datatable-container hidden addedrecords" id="added-records-datatable-container">
-                    <span class="datatable-label">Added Records</span>
-                    <div class="dataTable" style="margin-top: 30px;">
-                        <div class="added-records-display-outer-container">
-                            <div class="added-records-display-inner-container"> 
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="datatable-container hidden deletedrecords" id="deleted-records-datatable-container">
-                    <span class="datatable-label">Deleted Records</span>
-                    <div class="dataTable" style="margin-top: 30px;">
-                        <div class="deleted-records-display-outer-container">
-                            <div class="deleted-records-display-inner-container">   
+                    <div class="datatable-container deletedrecords" id="deleted-records-datatable-container">
+                        <span class="datatable-label">Deleted Records</span>
+                        <div class="dataTable" style="margin-top: 30px;">
+                            <div id="deleted-records-display-outer-container" class="records-display-outer-container">
+                                <div id="deleted-records-display-inner-container" class="records-display-inner-container">   
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="submit-button-wrap header-element" style="margin-top: 30px;">
-                    <form action="{{request.script_root}}/final_submit" method="GET" style="float: right;" target = "_blank" onSubmit="return confirm('Are you sure you wish to submit this data?');">
-                        <input id="finalize-submission" type="submit" value="Finalize Change Request" class="hidden post-change-option">
+                    <form 
+                        action="{{url_for('finalize.savechanges')}}" 
+                        method="GET" 
+                        style="float: right;" 
+                        onSubmit="(function(){window.onbeforeunload = undefined; return confirm('Are you sure you want to finalize this change request?');})();"
+                    >
+                        <input id="finalize-submission" type="submit" value="Finalize Change Request" class="hidden post-change-option clean-data-post-change-option">
                     </form>
-                    <form action="{{request.script_root}}/download_change_history" method="GET" target = "_blank" style="float: right;">
-                        <input id="submit-submission" type="submit" value="Download receipt" class="hidden post-change-option">
+                    <form action="{{url_for('export.download_change_history')}}" method="GET" target = "_blank" style="float: right;">
+                        <input id="submit-submission" type="submit" value="Download Change Summary" class="hidden post-change-option clean-data-post-change-option">
                     </form>
                     <input id="save-change-btn" type="button" value="Save current changes" class="hidden post-change-option">
                 </div>
             </div>
         </div>
     </div>
+</div>
+<div id="loading-modal" class="modal">
+    <div class="modal-content">
+        <img id="loader-gif" src="{{url_for('static', filename='loader.gif')}}" alt="Loading..." />
+    </div>
+</div>
+{% endblock %}
+{% block tooltip %}
+<div class="tooltip" id="changed-cell-tooltip">
+    <div class="title"></div>
+    <div class="content"></div>
 </div>
 {% endblock %}
 {% block scripts %}

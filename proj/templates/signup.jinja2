@@ -1,104 +1,80 @@
 {% extends 'base.jinja2'%}
-{% block body %}
-    <div class="container main-container">
-        <br>
-        <div class="container">
-            <div class="card">
-                <div class="card-header">
-                    Sign up to be authorized to edit data
-                </div>
-                <div class="card-body">
-                    {% for message in get_flashed_messages() %}
-                        <div class="alert alert-warning">
-                            <button
-                            type="button"
-                            class="close"
-                            data-dismiss="alert">
-                            x
-                            </button>
-                            {{ message }}
-                        </div>
+
+{% macro render_field(field) %}
+    <div class="form-group">
+        <fieldset>
+            {{ field.label }}
+            {{ field }}
+            {% if field.errors %}
+                <ul class="errors">
+                    {% for error in field.errors %}
+                        <li>❗ {{ error }}</li>
                     {% endfor %}
-                    <form id="sign-up-form" method="POST" action="{{request.script_root}}/auth/signup">
-                        {{form.csrf_token}}
-                        <div class="form-group">
-                            <fieldset>
-                                {{form.firstname.label}}
-                                {{form.firstname}}
-                            </fieldset>
-                        </div>
-                        
-                        <div class="form-group">
-                            <fieldset>
-                                {{form.lastname.label}}
-                                {{form.lastname}}
-                            </fieldset>
-                        </div>
-                        
-                        <div class="form-group">
-                            <fieldset>
-                                {{form.email.label}}
-                                {{form.email}}
-                                {% if form.email.errors %}
-                                <ul class="errors">
-                                    {% for error in form.email.errors %}
-                                    <li>{{ error }}</li>{% endfor %}
-                                </ul>
-                                {% endif %}
-                            </fieldset>
-                        </div>
-                        
-                        <div class="form-group">
-                            <fieldset>
-                                {{form.organization.label}}
-                                {{form.organization}}
-                                {% if form.organization.errors %}
-                                <ul class="errors">
-                                    {% for error in form.organization.errors %}
-                                    <li>{{ error }}</li>{% endfor %}
-                                </ul>
-                                {% endif %}
-                            </fieldset>
-                        </div>
-                    
-                        <div class="form-group">
-                            <fieldset>
-                                {{form.password.label}}
-                                {{form.password}}
-                                {% if form.password.errors %}
-                                <ul class="errors">
-                                    {% for error in form.password.errors %}
-                                    <li>{{ error }}</li>{% endfor %}
-                                </ul>
-                                {% endif %}
-                            </fieldset>
-                        </div>
+                </ul>
+            {% endif %}
+        </fieldset>
+    </div>
+{% endmacro %}
 
-                        <div class="form-group">
-                            <fieldset>
-                                {{form.confirm.label}}
-                                {{form.confirm}}
-                                {% if form.confirm.errors %}
-                                <ul class="errors">
-                                    {% for error in form.confirm.errors %}
-                                    <li>❗ {{ error }}</li>{% endfor %}
-                                </ul>
-                                {% endif %}
-                            </fieldset>
-                        </div>
-
-                        <div class="form-group submit-button">
-                            <fieldset>
-                                {{form.submit}}
-                            </fieldset>
-                        </div>
-                        
-                        <div class="form-group">
-                            <p>Already registered? <a href="{{url_for('auth.signin')}}">Sign in</a></p>
-                        </div>
-                        
-                    </form>
-                </div>
+{% block body %}
+    <div class="container main-container py-3">
+        <div class="card">
+            <div class="card-header">
+                Sign up to be authorized to edit data
+            </div>
+            <div class="card-body">
+                {% for message in get_flashed_messages() %}
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+                <form id="sign-up-form" method="POST" action="{{ url_for('auth.signup') }}">
+                    {{form.csrf_token}}
+                    {{ render_field(form.firstname) }}
+                    {{ render_field(form.lastname) }}
+                    {{ render_field(form.email) }}
+                    {{ render_field(form.organization) }}
+                    {{ render_field(form.password) }}
+                    {{ render_field(form.confirm) }}
+                    <div class="form-group submit-button">
+                        <fieldset>
+                            {{form.submit}}
+                        </fieldset>
+                    </div>
+                    <div class="form-group">
+                        <p>Already registered? <a href="{{url_for('auth.signin')}}">Sign in</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <hr>
+        <div class="card">
+            <div class="card-header">
+                Information/Instructions
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>
+                        Enter your information in the form
+                    </li>
+                    <li>
+                        Confirm your email address
+                    </li>
+                    <li>
+                        The SCCWRP IT department must authorize you to edit data
+                    </li>
+                    <li>
+                        After that, you will have the ability to access and modify data submitted by your agency
+                    </li>
+                    <li>
+                        If you have your email confirmed, or get approved by SCCWRP's IT department while you have a logged in session, 
+                        you may have to sign out and sign back in for the app to work properly for you.
+                    </li>
+                    <li>
+                        Feel free to reach out to IT@sccwrp.org for assistance
+                    </li>
+                </ol>
             </div>
         </div>
     </div>

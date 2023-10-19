@@ -15,7 +15,9 @@
         {% endblock %}
     </head>
     <body>
-        <div class="card outer-card">
+    {% block tooltip %}
+    {% endblock %}
+        {# <div class="card outer-card"> #}
             {% block session_user_info %}
             {% if current_user.is_authenticated %}
             <div class="card-header login-session-info-header">
@@ -26,8 +28,9 @@
             {% endif %}
             {% endblock %}
             {% block body %}{% endblock %}
-        </div>
+        {# </div> #}
     </body>
+    
     {% block scripts %}
     <script src="{{url_for('static',filename='misc.js')}}"></script>
     {% endblock %}

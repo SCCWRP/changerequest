@@ -17,6 +17,17 @@ login = Blueprint('login', __name__)
 @login.route('/')
 @login_required
 def index():
+    # Clear tmp tables if they had them
+    origintbl = session.get('origin_tablename')
+    modtbl = session.get('modified_tablename')
+    if ((origintbl is not None) and (modtbl is not None)):
+        g.eng.execute(
+            f"""
+            DROP TABLE tmp.{origintbl};
+            DROP TABLE tmp.{modtbl};
+            """
+        )
+        
     dtypes = current_app.dtypes
     return render_template("index.jinja2", dtypes = dtypes)
 

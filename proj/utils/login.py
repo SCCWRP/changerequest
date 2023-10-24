@@ -3,6 +3,10 @@ import pandas as pd
 def get_login_field(dtypes, dtype, field, eng, **kwargs):
     # dtypes is a dictionary that needs to be configured a certain way
     login_fields = [dt.get('fieldname') for dt in dtypes.get(dtype).get('login_fields')]
+    print("kwargs.keys()")
+    print(kwargs.keys())
+    print("login_fields")
+    print(login_fields)
     assert set(kwargs.keys()).issubset(set(login_fields)), \
         f"The keyword args {', '.join(kwargs.keys())} not found in the valid login fields: {', '.join(login_fields)}"
 

@@ -119,6 +119,18 @@ def signin():
 
 @auth_bp.route('/logout', methods = ['GET','POST'])
 def logout():
+    
+    # Clear tmp tables if they had them
+    origintbl = session.get('origin_tablename')
+    modtbl = session.get('modified_tablename')
+    if ((origintbl is not None) and (modtbl is not None)):
+        g.eng.execute(
+            f"""
+            DROP TABLE tmp.{origintbl};
+            DROP TABLE tmp.{modtbl};
+            """
+        )
+
     flash(f"{current_user.email} successfully signed out")
     logout_user()
     session.clear()

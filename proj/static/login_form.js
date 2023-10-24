@@ -29,7 +29,7 @@
             console.log(nextElement)
             if (nextElement === null) {
                 let qryStringArgs = arr.filter(item => ((item.dataset.dtype === dtype))).map(
-                    el => `${el.getAttribute('name')}=${el.value}`
+                    el => `${el.getAttribute('name')}=${encodeURIComponent(el.value)}`
                 ).join('&');
                 
                 let url = `/${$SCRIPT_ROOT}/submissions?${qryStringArgs}&dtype=${dtype}`;
@@ -63,7 +63,7 @@
                 `/${$SCRIPT_ROOT}/login_values?field=${field}`,
                 `dtype=${dtype}`,
                 arr.filter(item => (Number(item.dataset.index) < (nextIndex)) & (item.dataset.dtype === dtype))
-                    .map(el => `${el.getAttribute('name')}=${el.value}`)
+                    .map(el => `${el.getAttribute('name')}=${encodeURIComponent(el.value)}`)
                     .join('&')
             ];
     

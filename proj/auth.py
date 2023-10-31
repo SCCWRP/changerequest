@@ -126,8 +126,8 @@ def logout():
     if ((origintbl is not None) and (modtbl is not None)):
         g.eng.execute(
             f"""
-            DROP TABLE tmp.{origintbl};
-            DROP TABLE tmp.{modtbl};
+            DROP TABLE IF EXISTS tmp.{origintbl};
+            DROP TABLE IF EXISTS tmp.{modtbl};
             """
         )
 

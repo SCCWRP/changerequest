@@ -11,7 +11,7 @@ The app requires a users table (which we call db_editors by default) and a table
 
   
   
-Schema for change_history table (can be named differently but that must be specified in the configuration)
+Schema for change_history table (can be named differently but that must be specified in the configuration)  
 This table must be registered with the geodatabase
   
 | column_name      | is_nullable | dtype  | character_maximum_length | numeric_precision | numeric_scale | datetime_precision |

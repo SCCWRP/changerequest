@@ -9,8 +9,11 @@ SCCWRP's databases are Postgres ESRI geodatabases, so it will interface with no 
 
 The app requires a users table (which we call db_editors by default) and a table called change_history. 
 
+
+
 Schema for change_history table (can be named differently but that must be specified in the configuration)
 This table must be registered with the geodatabase
+
 | column_name      | is_nullable | dtype  | character_maximum_length | numeric_precision | numeric_scale | datetime_precision |
 |------------------|-------------|--------|--------------------------|-------------------|---------------|--------------------|
 | objectid         | NO          | int4   | (Null)                   | 32                | 0             | (Null)             |
@@ -25,7 +28,10 @@ This table must be registered with the geodatabase
 | login_fields     | YES         | json   | (Null)                   | (Null)            | (Null)        | (Null)             |
 
 
+
+
 Schema for db_editors (which is essentially a users table)
+
 | column_name         | is_nullable | dtype    | character_maximum_length | numeric_precision | numeric_scale | datetime_precision |
 |---------------------|-------------|----------|--------------------------|-------------------|---------------|--------------------|
 | email               | NO          | varchar  | 255                      | (Null)            | (Null)        | (Null)             |

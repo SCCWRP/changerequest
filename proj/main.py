@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from .utils.comparison import highlight_changes, compare
 from .utils.html import htmltable
 from .utils.mail import send_mail
-from .utils.db import get_primary_key
+from .utils.db import get_primary_key, get_pkey_constraint_name
 from .utils.generic import ordered_columns
 from .core import core
 from .custom import *
@@ -110,12 +110,21 @@ def main():
     
     # Records that pass Core checks can go  into the database without integrity errors.
     # Load those records to their table while returning their problematic records for them to examine and possibly edit.
+    mod_tbl_pkey_constraint_name = get_pkey_constraint_name(session['modified_tablename'], eng, 'tmp')
+    
+    # if no primary key constraint name is found, that's a problem
+    assert mod_tbl_pkey_constraint_name != '', f"""ERROR - No primary key constraint name found for the modified table {session['modified_tablename']}"""
+    
+    # Get actual primary key columns
+    mod_tbl_pkey_cols = get_primary_key(session['modified_tablename'], eng)
+    assert mod_tbl_pkey_cols != [], f"""ERROR - No primary key found for the modified table {session['modified_tablename']}"""
+    
     goodrecords_sql = \
         """
         INSERT INTO tmp.{} 
         ({}) 
         VALUES {} 
-        ON CONFLICT (objectid) DO UPDATE SET {}
+        ON CONFLICT ON CONSTRAINT {} DO UPDATE SET {}
         """ \
         .format(
             session['modified_tablename'], 
@@ -138,10 +147,8 @@ def main():
                 for x in 
                 list(zip(*[good_dataframe[c] for c in good_dataframe.columns]))
             ),
-            #','.join(pkey_columns),
-            #session['modified_tablename'],
-            #',\n'.join([f"{colname} = EXCLUDED.{colname}" for colname in good_dataframe.columns if colname not in pkey_columns])
-            ',\n'.join([f"{colname} = EXCLUDED.{colname}" for colname in good_dataframe.columns if colname != 'objectid'])
+            mod_tbl_pkey_constraint_name,
+            ',\n'.join([f"{colname} = EXCLUDED.{colname}" for colname in good_dataframe.columns if colname not in [*mod_tbl_pkey_cols, 'objectid']])
         ) \
         .replace("%","%%")
 

@@ -2,42 +2,52 @@ import pandas as pd
 import re
 
 # This function allows you to put in a table name and get back the primary key fields of the table
-def get_primary_key(tablename, eng):
-    
-    # This query gets us the primary keys of a table. Not in a python friendly format
-    # Copy paste to Navicat, pgadmin, or do a pd.read_sql to see what it gives
-    pkey_query = f"""
-        SELECT 
-            conrelid::regclass AS table_from, 
-            conname, 
-            pg_get_constraintdef(oid) 
-        FROM pg_constraint 
-        WHERE 
-            contype IN ('f', 'p') 
-            AND connamespace = 'sde'::regnamespace 
-            AND conname LIKE '{tablename}%%' 
-        ORDER BY 
-            conrelid::regclass::text, contype DESC;
-    """
-    pkey_df = pd.read_sql(pkey_query, eng)
-    
-    pkey = []
-    # sometimes there is no primary key
-    if not pkey_df.empty:
-        # pg_get_constraintdef = postgres get constraint definition
-        # Get the primary key constraint's definition
-        pkey = pkey_df.pg_get_constraintdef.tolist()[0]
+def get_primary_key(table, eng):
+    '''
+    table is the tablename you want the primary key for
+    eng is the database connection
+    '''
 
-        # Remove excess junk to just get the primary key field names
-        # split at the commas to get a nice neat python list
-        pkey = re.sub(r"(PRIMARY\sKEY\s\()|(\))","",pkey).split(',')
+    sql = f'''
+        SELECT
+            tc.TABLE_NAME,
+            C.COLUMN_NAME,
+            C.data_type 
+        FROM
+            information_schema.table_constraints tc
+            JOIN information_schema.constraint_column_usage AS ccu USING ( CONSTRAINT_SCHEMA, CONSTRAINT_NAME )
+            JOIN information_schema.COLUMNS AS C ON C.table_schema = tc.CONSTRAINT_SCHEMA 
+            AND tc.TABLE_NAME = C.TABLE_NAME 
+            AND ccu.COLUMN_NAME = C.COLUMN_NAME 
+        WHERE
+            constraint_type = 'PRIMARY KEY' 
+            AND tc.TABLE_NAME = '{table}';
+    '''
 
-        # remove whitespace from the edges
-        pkey = [colname.strip() for colname in pkey]
-        
-    return pkey
-
+    return pd.read_sql(sql, eng).column_name.tolist()
     
+
+def get_pkey_constraint_name(tablename, conn, schema = 'sde'):
+    pkeydf = pd.read_sql(
+        f"""
+            SELECT conname, contype, t.relname
+                FROM pg_catalog.pg_constraint c
+                JOIN pg_catalog.pg_class t ON t.oid = c.conrelid
+                JOIN pg_catalog.pg_namespace n ON n.oid = t.relnamespace
+                WHERE t.relname = '{tablename}' AND n.nspname = '{schema}' AND contype = 'p';
+        """,
+        conn
+    )
+    
+    if pkeydf.empty:
+        print(f"WARNING - No primary key set on {schema}.{tablename}")
+        pkeyname = ''
+    else:
+        pkeyname = pkeydf.conname.tolist()[0]
+        pkeyname = str(pkeyname).replace("'",'').replace('"','').replace(';','')
+    return pkeyname
+
+
 # for the checkDataTypes function in core_checks
 def dtype_translator(dtype: str, human_readable = False):
     if dtype is None:

@@ -454,7 +454,11 @@ def main():
     # Now get the SQL for deleting records, which is a lot less complicated (Just need objectids of those records being deleted)
     # if no deleted records, just make the delete records SQL an empty string so that nothing goes in the SQL file
     print("Now get the SQL for deleting records, which is a lot less complicated")
-    delete_records_sql = f"DELETE FROM {tablename} WHERE objectid IN (\n{',\n\t'.join([str(int(x)) for x in deleted_records.objectid.tolist()])}\n)" \
+    delete_records_sql = "DELETE FROM {} WHERE objectid IN (\n{}\n)" \
+        .format(
+            tablename,
+            ',\n\t'.join([str(int(x)) for x in deleted_records.objectid.tolist()])
+        ) \
         if not deleted_records.empty \
         else ' -- (No Deleted Records) -- '
 

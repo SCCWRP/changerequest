@@ -1,6 +1,7 @@
 import pandas as pd
 import multiprocessing as mp
-import time, json, os
+import time, json, os, re
+
 
 
 # For the sake of checking the data in multiple ways at the same time
@@ -60,3 +61,30 @@ def ordered_columns(df, column_order):
     remaining_columns = [c for c in df.columns if c not in column_order]
     return [*ordered_columns, *remaining_columns]
     
+
+
+# so it doesnt get defined in every single function call
+NUMERIC_STRING_PATTERN = re.compile(r'[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?')
+def history_log_converter(x):
+    
+    # Convert to string once to avoid multiple conversions
+    x_str = str(x)
+    
+    # Check if x is NaN or None
+    if pd.isnull(x):
+        return ''
+    
+    # Check if x does not match the numeric pattern
+    if not re.match(NUMERIC_STRING_PATTERN, x_str):
+        return x_str
+    
+    try:
+        # Attempt to convert to float then to int if it's an integer
+        float_x = float(x_str)
+        if float_x.is_integer():
+            return str(int(float_x))
+        else:
+            return x_str
+    except ValueError:
+        # In case of conversion failure, return the original string
+        return x_str

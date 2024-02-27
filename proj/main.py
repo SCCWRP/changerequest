@@ -1,6 +1,7 @@
 ########################################
 # This file contains the diff function #
 ########################################
+import os
 from flask import Blueprint, request, jsonify, session, current_app, g
 from flask_login import login_required
 import pandas as pd
@@ -10,13 +11,13 @@ from .utils.comparison import highlight_changes, compare
 from .utils.html import htmltable
 from .utils.mail import send_mail
 from .utils.db import get_primary_key, get_pkey_constraint_name
-from .utils.generic import ordered_columns
+from .utils.generic import ordered_columns, history_log_converter
 from .core import core
 from .custom import *
-import os
 
 # To view all data in print statements when debugging
 pd.set_option('display.max_columns', None)
+
 
 
 ###############################################################
@@ -344,8 +345,12 @@ def main():
 
             # The items are converted to strings to make it easier to put everything into the sql statements, files, etc
             # Often they complain about different datatypes numpy.float64's numpy.int64's etc.
-            hislog_accepted_changes[col] = hislog_accepted_changes[col].apply(lambda x: str(x) if pd.notnull(x) else '')
+
+            # Apply the conversion function to the column
+            # history_log_converter imported from utils.generic
+            hislog_accepted_changes[col] = hislog_accepted_changes[col].apply(history_log_converter)
         
+
         # Creating the SQL statement to update records
         print("history log")
         hislog = hislog_accepted_changes \

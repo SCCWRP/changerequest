@@ -10,8 +10,6 @@ def checkDataTypes(dataframe, tablename, eng, meta, *args, output = None, **kwar
     ret = []
     for col in dataframe.columns: 
         if col not in current_app.system_fields:
-            print("meta")
-            print(meta)
             
             # col must be in the list of column names in the metadata dataframe
             assert \
@@ -64,13 +62,8 @@ def checkDataTypes(dataframe, tablename, eng, meta, *args, output = None, **kwar
                     error_message = f"The value here is not valid for the datatype {dtype}"
                 )
             )
-            print("ret:")
-            print(ret)
         
 
-    print("-----before if output-----")
-    print("dataframe.columns")
-    print(dataframe.columns)
     if output:
         print("---enter if output---")
         output.put(ret)

@@ -2,11 +2,14 @@
 # This file contains the diff function #
 ########################################
 import os
-from flask import Blueprint, request, jsonify, session, current_app, g
-from flask_login import login_required
 import pandas as pd
 import numpy as np
+from flask import Blueprint, request, jsonify, session, current_app, g
+from flask_login import login_required
 from werkzeug.utils import secure_filename
+from copy import deepcopy
+
+# Custom Imports
 from .utils.comparison import highlight_changes, compare
 from .utils.html import htmltable
 from .utils.mail import send_mail
@@ -98,12 +101,18 @@ def main():
     # Run checks
     # soon we will want to run this on the entire submission, not just the modified records
     # Core Checks function throws the errors in the session variable, where we will access them here
-    core_output = core(df = df_modified, tblname = session.get('tablename'), eng = g.eng, debug = True)
+    
+    # We are running core checks on a deepcopy of the dataframe (df_modified) - 
+    #  because for some reason, it was modifiying the df_modified object and messing with it even outside the scope of the function, 
+    #  i have no idea why
+    #  This is related to issue #26 on github
+    core_output = core(df = deepcopy(df_modified), tblname = session.get('tablename'), eng = g.eng, debug = True)
+    
 
     errors = [*errors, *core_output.get('core_errors')]
     warnings = [*warnings, *core_output.get('core_warnings')]
 
-
+    
     badrows = set([r['row_number'] for e in errors for r in e['rows']])
     errors_dataframe = df_modified[df_modified.index.isin([n - 1 for n in badrows])]
     good_dataframe = df_modified[~df_modified.index.isin([n - 1 for n in badrows])]

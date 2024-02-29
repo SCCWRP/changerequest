@@ -61,15 +61,44 @@ def multitask(functions: list, *args):
 @lru_cache(maxsize=128, typed=True)
 def convert_dtype(t, x):
     try:
+
         if ((pd.isnull(x)) and (t == int)):
             return True
+        
         t(x)
+
+        # if the type is an int, and it got this far, at least the literal matches that of a number
+        # if it matches the float pattern though, we have a problem
+        if (t == int):
+
+            # remove negative sign
+            # remove decimal part if all zeros, retain if there is a non zero digit
+            # then call the isdigit method to see if all values in the string are digits, thus meaning it is an integer value
+            return re.sub(r'\.0*$','',(str(x)[1:] if str(x).startswith('-') else str(x))).isdigit()
+            
+            # floatpat = re.compile(r"^\d+\.0*[1-9]+")
+            # # If it matches a float we want to return False
+            # return not bool(re.match(floatpat, str(x)))
+        
+        if t == pd.Timestamp:
+            # checking for a valid postgres timestamp literal
+            # Postgres technically also accepts the format like "January 8 00:00:00 1999" but we won't be checking for that unless it becomes a problem
+            datepat = re.compile("\d{4}-\d{1,2}-\d{1,2}\s*(\d{1,2}:\d{1,2}:\d{2}(\.\d+){0,1}){0,1}$")
+            return bool(re.match(datepat, str(x)))
+        
         return True
     except Exception as e:
+        if t == pd.Timestamp:
+            # checking for a valid postgres timestamp literal
+            # Postgres technically also accepts the format like "January 8 00:00:00 1999" but we won't be checking for that unless it becomes a problem
+            datepat = re.compile("\d{4}-\d{1,2}-\d{1,2}\s*(\d{1,2}:\d{1,2}:\d{2}(\.\d+){0,1}){0,1}$")
+            return bool(re.match(datepat, str(x)))
+        
         return False
 
 @lru_cache(maxsize=128, typed=True)
 def check_precision(x, precision):
+
     try:
         int(x)
     except Exception as e:
@@ -82,7 +111,16 @@ def check_precision(x, precision):
     if pd.isnull(precision):
         return True
 
-    x = abs(float(x))
+    try:
+        if not isinstance(x, (int, float)):
+            x = float(str(x))
+    except Exception as e:
+        # If an exception occurs here, their data must be really messed up and we'll have to trust that checkDataTypes will flag it
+        return True
+    
+
+    x = abs(x)
+    
     if 0 < x < 1:
         # if x is a fraction, it doesnt matter. it should be able to go into a numeric field regardless
         return True
@@ -128,7 +166,15 @@ def check_scale(x, scale):
         return True
     if pd.isnull(scale):
         return True
-    x = abs(float(x))
+    
+    try:
+        if not isinstance(x, (int, float)):
+            x = float(str(x))
+    except Exception as e:
+        # If an exception occurs here, their data must be really messed up and we'll have to trust that checkDataTypes will flag it
+        return True
+    
+    x = abs(x)
     if 'e-' in str(x):
         # The idea is if the number comes in in scientific notation
         # it will look like 7e11 or something like that

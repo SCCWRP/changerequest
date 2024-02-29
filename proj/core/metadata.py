@@ -27,9 +27,6 @@ def checkDataTypes(dataframe, tablename, eng, meta, *args, output = None, **kwar
             ] \
             .values[0]
 
-            print("dtype:")
-            print(dtype)
-            print(dataframe.columns)
 
             ret.append(
                 checkData(

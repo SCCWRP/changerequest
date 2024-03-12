@@ -142,7 +142,7 @@
                         action="{{url_for('finalize.savechanges')}}" 
                         method="GET" 
                         style="float: right;" 
-                        onSubmit="(function(){window.onbeforeunload = undefined; return confirm('Are you sure you want to finalize this change request?');})();"
+                        onSubmit="return (function(){window.onbeforeunload = undefined; return confirm('Are you sure you want to finalize this change request?');})();"
                     >
                         <input id="finalize-submission" type="submit" value="Finalize Change Request" class="hidden post-change-option clean-data-post-change-option">
                     </form>

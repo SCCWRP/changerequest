@@ -116,7 +116,7 @@ checker_app_login_fields = pd.read_sql("SELECT column_name FROM information_sche
 
 # list of database fields that should not be queried on - removed status could be a problem 9sep17 - added trawl calculated fields - removed projectcode for smc part of tbl_phab
 app.system_fields = [
-    "globalid", "submissionid", "created_user", "created_date", "last_edited_user", "last_edited_date", "warnings", "login_email", "login_agency",
+    *CUSTOM_CONFIG.get("system_fields"),
     *checker_app_login_fields
 ]
 

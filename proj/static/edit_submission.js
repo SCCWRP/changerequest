@@ -10,75 +10,67 @@ import { saveChanges } from "./save.js";
     uploadForm.addEventListener("submit", async function(event){
         event.preventDefault();
         event.stopPropagation();
-
+    
         // show loader gif
         const loadingModal = document.getElementById('loading-modal');
         loadingModal.style.display = 'block';
-
+    
         /* unhide the datatable containers */
         Array.prototype.slice.call(document.querySelectorAll(".datatable-container")).map(
-            c => {
-                c.classList.remove("hidden")
-            }
-        )
+            c => c.classList.remove("hidden")
+        );
         document.getElementById('change-report-container').classList.remove('hidden');
-
-
+    
         document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loader.gif">`;
-
-        //const dropped_files = event.originalEvent.dataTransfer.files;
+    
         const dropped_files = document.querySelector('[type=file]').files;
         const formData = new FormData();
         for(let i = 0; i < dropped_files.length; ++i){
-            /* submit as array to as file array - otherwise will fail */
             formData.append('files[]', dropped_files[i]);
         }
-        let result = await fetch(
-            `/${$SCRIPT_ROOT}/compare`,
-            {
-                method: 'post',
+    
+        try {
+            let result = await fetch(`/${$SCRIPT_ROOT}/compare`, {
+                method: 'POST',
                 body: formData
+            });
+    
+            if (!result.ok) {
+                throw new Error(`Server error: ${result.statusText}`);
             }
-        );
-        let data = await result.json();
-        console.log(data);
-        console.log(data.addtbl);
-        console.log(data.deltbl);
-        
-        document.querySelector("#changed-records-display-inner-container").innerHTML = data.tbl;
-        document.querySelector("#added-records-display-inner-container").innerHTML = data.addtbl;
-        document.querySelector("#deleted-records-display-inner-container").innerHTML = data.deltbl;
-
-        // call function that formats the table
-        formatDataTable(data);
-
-        // Add table navigation listeners since elements are being created when the "changed records" table gets created
-        tableNavigation()
-
-        // Scroll it into view
-        document.getElementById('change-report-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-        // show buttons
-        Array.prototype.slice.call(document.querySelectorAll(".post-change-option")).map(
-            (b) => {
-                if (data.errors.length == 0) {
-                    // No errors? unhide all post change buttons
+    
+            let data = await result.json();
+    
+            // Assuming formatDataTable and tableNavigation exist
+            document.querySelector("#changed-records-display-inner-container").innerHTML = data.tbl;
+            document.querySelector("#added-records-display-inner-container").innerHTML = data.addtbl;
+            document.querySelector("#deleted-records-display-inner-container").innerHTML = data.deltbl;
+    
+            formatDataTable(data);
+            tableNavigation();
+    
+            document.getElementById('change-report-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+            // handle buttons visibility based on error presence
+            Array.prototype.slice.call(document.querySelectorAll(".post-change-option")).map((b) => {
+                if (!data.errors || data.errors.length === 0) {
                     b.classList.remove("hidden");
                 } else {
-                    // Errors? Make sure the buttons that should NOT show, dont show
-                    // Only the button to save changes after editing should show so that they can fix their errors
                     b.classList.contains('clean-data-post-change-option') ? b.classList.add("hidden") : b.classList.remove("hidden");
                 }
-            }
-        )
-
-        addTips();
-        
-        // hide loader gif
-        loadingModal.style.display = 'none';
-        
-        return data;
-    })
+            });
+    
+            addTips();
+    
+        } catch (error) {
+            console.error("An error occurred:", error);
+            alert("An error occurred during the file upload process, and SCCWRP Staff has been notified. Please try again.");
+        } finally {
+            // hide loader gif
+            loadingModal.style.display = 'none';
+        }
+    });
+    
 
     // the edit submission page should warn them they might have unsaved changes
     window.onbeforeunload = () => {return true}

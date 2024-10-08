@@ -207,6 +207,13 @@ def sessiondata():
             DELETE FROM tmp.{session['modified_tablename']};
         """
     )
+    
+    # Remove Object ID Index on modified table - it is not necessary at all - and causes a bug (issue #27)
+    eng.execute(
+        f"""
+            DROP INDEX IF EXISTS tmp.{session['modified_tablename']}_objectid_idx;
+        """
+    )
     print(tablename)
     # Remove Not NULL constraints from the tmp tables, at least for the immutable fields
     # It doesnt matter if those fields get populated in the tmp tables

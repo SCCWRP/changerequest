@@ -61,15 +61,44 @@ def multitask(functions: list, *args):
 @lru_cache(maxsize=128, typed=True)
 def convert_dtype(t, x):
     try:
+
         if ((pd.isnull(x)) and (t == int)):
             return True
+        
         t(x)
+
+        # if the type is an int, and it got this far, at least the literal matches that of a number
+        # if it matches the float pattern though, we have a problem
+        if (t == int):
+
+            # remove negative sign
+            # remove decimal part if all zeros, retain if there is a non zero digit
+            # then call the isdigit method to see if all values in the string are digits, thus meaning it is an integer value
+            return re.sub(r'\.0*$','',(str(x)[1:] if str(x).startswith('-') else str(x))).isdigit()
+            
+            # floatpat = re.compile(r"^\d+\.0*[1-9]+")
+            # # If it matches a float we want to return False
+            # return not bool(re.match(floatpat, str(x)))
+        
+        if t == pd.Timestamp:
+            # checking for a valid postgres timestamp literal
+            # Postgres technically also accepts the format like "January 8 00:00:00 1999" but we won't be checking for that unless it becomes a problem
+            datepat = re.compile("\d{4}-\d{1,2}-\d{1,2}\s*(\d{1,2}:\d{1,2}:\d{2}(\.\d+){0,1}){0,1}$")
+            return bool(re.match(datepat, str(x)))
+        
         return True
     except Exception as e:
+        if t == pd.Timestamp:
+            # checking for a valid postgres timestamp literal
+            # Postgres technically also accepts the format like "January 8 00:00:00 1999" but we won't be checking for that unless it becomes a problem
+            datepat = re.compile("\d{4}-\d{1,2}-\d{1,2}\s*(\d{1,2}:\d{1,2}:\d{2}(\.\d+){0,1}){0,1}$")
+            return bool(re.match(datepat, str(x)))
+        
         return False
 
 @lru_cache(maxsize=128, typed=True)
 def check_precision(x, precision):
+
     try:
         int(x)
     except Exception as e:
@@ -82,7 +111,16 @@ def check_precision(x, precision):
     if pd.isnull(precision):
         return True
 
-    x = abs(float(x))
+    try:
+        if not isinstance(x, (int, float)):
+            x = float(str(x))
+    except Exception as e:
+        # If an exception occurs here, their data must be really messed up and we'll have to trust that checkDataTypes will flag it
+        return True
+    
+
+    x = abs(x)
+    
     if 0 < x < 1:
         # if x is a fraction, it doesnt matter. it should be able to go into a numeric field regardless
         return True
@@ -128,7 +166,15 @@ def check_scale(x, scale):
         return True
     if pd.isnull(scale):
         return True
-    x = abs(float(x))
+    
+    try:
+        if not isinstance(x, (int, float)):
+            x = float(str(x))
+    except Exception as e:
+        # If an exception occurs here, their data must be really messed up and we'll have to trust that checkDataTypes will flag it
+        return True
+    
+    x = abs(x)
     if 'e-' in str(x):
         # The idea is if the number comes in in scientific notation
         # it will look like 7e11 or something like that
@@ -209,40 +255,28 @@ def fetch_meta(tablename, eng):
 
 # This function allows you to put in a table name and get back the primary key fields of the table
 def get_primary_key(tablename, eng):
-    # eng is a sqlalchemy database connection
+    '''
+    table is the tablename you want the primary key for
+    eng is the database connection
+    '''
 
-    # This query gets us the primary keys of a table. Not in a python friendly format
-    # Copy paste to Navicat, pgadmin, or do a pd.read_sql to see what it gives
-    pkey_query = f"""
-        SELECT 
-            conrelid::regclass AS table_from, 
-            conname, 
-            pg_get_constraintdef(oid) 
-        FROM pg_constraint 
-        WHERE 
-            contype IN ('f', 'p') 
-            AND connamespace = 'sde'::regnamespace 
-            AND conname LIKE '{tablename}%%' 
-        ORDER BY 
-            conrelid::regclass::text, contype DESC;
-    """
-    pkey_df = pd.read_sql(pkey_query, eng)
-    
-    pkey = []
-    # sometimes there is no primary key
-    if not pkey_df.empty:
-        # pg_get_constraintdef = postgres get constraint definition
-        # Get the primary key constraint's definition
-        pkey = pkey_df.pg_get_constraintdef.tolist()[0]
+    sql = f'''
+        SELECT
+            tc.TABLE_NAME,
+            C.COLUMN_NAME,
+            C.data_type 
+        FROM
+            information_schema.table_constraints tc
+            JOIN information_schema.constraint_column_usage AS ccu USING ( CONSTRAINT_SCHEMA, CONSTRAINT_NAME )
+            JOIN information_schema.COLUMNS AS C ON C.table_schema = tc.CONSTRAINT_SCHEMA 
+            AND tc.TABLE_NAME = C.TABLE_NAME 
+            AND ccu.COLUMN_NAME = C.COLUMN_NAME 
+        WHERE
+            constraint_type = 'PRIMARY KEY' 
+            AND tc.TABLE_NAME = '{tablename}';
+    '''
 
-        # Remove excess junk to just get the primary key field names
-        # split at the commas to get a nice neat python list
-        pkey = re.sub(r"(PRIMARY\sKEY\s\()|(\))","",pkey).split(',')
-
-        # remove whitespace from the edges
-        pkey = [colname.strip() for colname in pkey]
-        
-    return pkey
+    return pd.read_sql(sql, eng).column_name.tolist()
 
 
 def get_badrows(df_badrows):

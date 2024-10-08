@@ -1,22 +1,26 @@
 ########################################
 # This file contains the diff function #
 ########################################
-from flask import Blueprint, request, jsonify, session, current_app, g
-from flask_login import login_required
+import os
 import pandas as pd
 import numpy as np
+from flask import Blueprint, request, jsonify, session, current_app, g
+from flask_login import login_required
 from werkzeug.utils import secure_filename
+from copy import deepcopy
+
+# Custom Imports
 from .utils.comparison import highlight_changes, compare
 from .utils.html import htmltable
 from .utils.mail import send_mail
 from .utils.db import get_primary_key, get_pkey_constraint_name
-from .utils.generic import ordered_columns
+from .utils.generic import ordered_columns, history_log_converter
 from .core import core
 from .custom import *
-import os
 
 # To view all data in print statements when debugging
 pd.set_option('display.max_columns', None)
+
 
 
 ###############################################################
@@ -97,12 +101,18 @@ def main():
     # Run checks
     # soon we will want to run this on the entire submission, not just the modified records
     # Core Checks function throws the errors in the session variable, where we will access them here
-    core_output = core(df = df_modified, tblname = session.get('tablename'), eng = g.eng, debug = True)
+    
+    # We are running core checks on a deepcopy of the dataframe (df_modified) - 
+    #  because for some reason, it was modifiying the df_modified object and messing with it even outside the scope of the function, 
+    #  i have no idea why
+    #  This is related to issue #26 on github
+    core_output = core(df = deepcopy(df_modified), tblname = session.get('tablename'), eng = g.eng, debug = True)
+    
 
     errors = [*errors, *core_output.get('core_errors')]
     warnings = [*warnings, *core_output.get('core_warnings')]
 
-
+    
     badrows = set([r['row_number'] for e in errors for r in e['rows']])
     errors_dataframe = df_modified[df_modified.index.isin([n - 1 for n in badrows])]
     good_dataframe = df_modified[~df_modified.index.isin([n - 1 for n in badrows])]
@@ -344,8 +354,12 @@ def main():
 
             # The items are converted to strings to make it easier to put everything into the sql statements, files, etc
             # Often they complain about different datatypes numpy.float64's numpy.int64's etc.
-            hislog_accepted_changes[col] = hislog_accepted_changes[col].apply(lambda x: str(x) if pd.notnull(x) else '')
+
+            # Apply the conversion function to the column
+            # history_log_converter imported from utils.generic
+            hislog_accepted_changes[col] = hislog_accepted_changes[col].apply(history_log_converter)
         
+
         # Creating the SQL statement to update records
         print("history log")
         hislog = hislog_accepted_changes \
@@ -454,7 +468,11 @@ def main():
     # Now get the SQL for deleting records, which is a lot less complicated (Just need objectids of those records being deleted)
     # if no deleted records, just make the delete records SQL an empty string so that nothing goes in the SQL file
     print("Now get the SQL for deleting records, which is a lot less complicated")
-    delete_records_sql = f"DELETE FROM {tablename} WHERE objectid IN ({','.join([str(int(x)) for x in deleted_records.objectid.tolist()])})" \
+    delete_records_sql = "DELETE FROM {} WHERE objectid IN (\n{}\n)" \
+        .format(
+            tablename,
+            ',\n\t'.join([str(int(x)) for x in deleted_records.objectid.tolist()])
+        ) \
         if not deleted_records.empty \
         else ' -- (No Deleted Records) -- '
 

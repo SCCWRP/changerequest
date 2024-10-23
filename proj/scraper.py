@@ -4,6 +4,7 @@ from .utils.mail import send_mail
 
 
 scraper = Blueprint('scraper', __name__)
+@scraper.route('/lookup-lists', methods=['GET'])
 @scraper.route('/scraper', methods=['GET'])
 def lookuplists():
     print("start scraper")

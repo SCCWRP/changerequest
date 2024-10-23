@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify, session, send_file, g, current_ap
 import pandas as pd
 import os
 from .utils.mail import send_mail
+from .utils.excel import format_existing_excel
 
 from flask_login import login_required
 
@@ -33,6 +34,9 @@ def download_submission():
         df.to_excel(writer, sheet_name = tablename, index = False)
         
         writer.save()
+        
+    # format the excel file that will get downloaded
+    format_existing_excel(excelpath)
 
     return send_file(excelpath, as_attachment = True, download_name = filename)
 

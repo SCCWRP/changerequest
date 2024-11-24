@@ -1,4 +1,4 @@
-from flask import Blueprint, session, render_template, g, jsonify, current_app, redirect, url_for
+from flask import Blueprint, session, render_template, g, jsonify, current_app, redirect, url_for, request
 import pandas as pd
 import json
 import os
@@ -76,12 +76,16 @@ def savechanges():
                 deleted[colname] = deleted[colname].str.replace("'","")
 
 
+        change_comment = session.pop('comment', '')
+        sanitized_change_comment = change_comment.replace("'","''").replace('\n','').replace('\r','')
+        
+
         print("update the change history table one by one")
         print("update the changed records")
   
         change_history_records = [
             *changed.apply(
-                lambda row: change_history_update(row, original, sessionid, submissionid, login_info, session_user_agency, session_user_email),
+                lambda row: change_history_update(row, original, sessionid, submissionid, login_info, session_user_agency, session_user_email, sanitized_change_comment),
                 axis = 1
             ) \
             .values,
@@ -97,6 +101,7 @@ def savechanges():
                         '{session_user_agency}',
                         '{session_user_email}',
                         '{pd.Timestamp(sessionid, unit = 's').strftime("%Y-%m-%d %H:%M:%S")}',
+                        '{sanitized_change_comment}',
                         'No'
                     )
                 """,
@@ -114,6 +119,7 @@ def savechanges():
                         '{session_user_agency}',
                         '{session_user_email}',
                         '{pd.Timestamp(sessionid, unit = 's').strftime("%Y-%m-%d %H:%M:%S")}',
+                        '{sanitized_change_comment}',
                         'No'
                     )
                 """,
@@ -131,6 +137,7 @@ def savechanges():
                 requesting_agency,
                 requesting_person,
                 change_date,
+                change_comment,
                 change_processed
             ) VALUES {', '.join(change_history_records)}
         """
@@ -162,6 +169,7 @@ Datatype: {}\n\
 Original Submission Date: {}\n\
 Original Submission ID: {}\n\
 Change ID: {}\n\n\
+Change Comment: {}\n\n\n\
 SCCWRP Staff has been notified and they will let you know when the change has been finalized.
 \n\
                 """.format(
@@ -169,7 +177,8 @@ SCCWRP Staff has been notified and they will let you know when the change has be
                     session.get('dtype'),
                     session.get('submissiondate'),
                     session.get('submissionid'),
-                    session.get('sessionid')
+                    session.get('sessionid'),
+                    change_comment
                 ),
                 files = [session.get('comparison_path')],
                 server = current_app.config.get('MAIL_SERVER')
@@ -186,7 +195,8 @@ SCCWRP Staff has been notified and they will let you know when the change has be
 Datatype: {}\n\
 Original Submission Date: {}\n\
 Original Submission ID: {}\n\
-Change ID: {}\n\n\n\
+Change ID: {}\n\
+Change Comment: {}\n\n\n\
 For SCCWRP staff:\n\
 UPDATE RECORDS: (See attached SQL file)\n
 \n\nUPDATE CHANGE HISTORY TABLE:\n{}
@@ -196,6 +206,7 @@ UPDATE RECORDS: (See attached SQL file)\n
                     session.get('submissiondate'),
                     session.get('submissionid'),
                     session.get('sessionid'),
+                    change_comment,
                     #sql,
                     f"UPDATE {os.environ.get('CHANGE_HISTORY_TABLE')} SET change_processed = 'Yes' WHERE change_id = {session['sessionid']} RETURNING *"
                 ),
@@ -271,9 +282,28 @@ UPDATE RECORDS: (See attached SQL file)\n
         )
 
 
+@finalize.route("/savecomment", methods = ['POST'])
+def savecomment():
+
+    body = request.get_json()
+
+    comment = body.get('comment')
+
+    print("comment")
+    print(comment)
+
+    session['comment'] = comment
+    print("session.get('comment')")
+    print(session.get('comment'))
+
+    return jsonify({'code': 200, 'message': 'Comment saved in session successfully'})
+
+    
+
+
 @finalize.errorhandler(Exception)
 def default_error_handler(error):
-    print("Checker application came across an error...")
+    print("Change Request application came across an error...")
     #print(str(error).encode('utf-8'))
     response = jsonify({'code': 500,'message': str(error)})
     response.status_code = 500

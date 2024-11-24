@@ -2,7 +2,7 @@
 {% block head %}
 {{ super() }}
     <link rel="stylesheet" href="{{url_for('static', filename='edit_submission.css')}}">
-    <script type="module" src="{{url_for('static', filename='save.js')}}"></script>
+    <script defer type="module" src="{{url_for('static', filename='save.js')}}"></script>
 {% endblock %}
 {% block session_user_info %} {{ super() }} {% endblock %}
 {% block body %}
@@ -139,10 +139,10 @@
                 </div>
                 <div class="submit-button-wrap header-element" style="margin-top: 30px;">
                     <form 
+                        id="final-submit-form"
                         action="{{url_for('finalize.savechanges')}}" 
                         method="GET" 
                         style="float: right;" 
-                        onSubmit="return (function(){window.onbeforeunload = undefined; return confirm('Are you sure you want to finalize this change request?');})();"
                     >
                         <input id="finalize-submission" type="submit" value="Finalize Change Request" class="hidden post-change-option clean-data-post-change-option">
                     </form>

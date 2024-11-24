@@ -179,6 +179,7 @@ app.eng.execute(
         "requesting_person" varchar(50) COLLATE "pg_catalog"."default",
         "change_date" timestamp(6),
         "change_processed" varchar(50) COLLATE "pg_catalog"."default",
+        "change_comment" text COLLATE "pg_catalog"."default",
         "login_fields" json
     )
     """

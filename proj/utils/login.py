@@ -55,7 +55,7 @@ def get_submission_ids(dtypes, eng, dtype = None, **kwargs):
         {
             ' AND '.join([ f"login_{k} = '{v}'" for k,v in kwargs.items() ])
         }
-        AND datatype = '{dtype.replace(';','').replace("'","")}'
+        AND datatype = '{dtype.replace(';','').replace("'","''")}'
         ORDER BY 1;
     """
     print(sql)

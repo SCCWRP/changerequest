@@ -452,7 +452,7 @@ def main():
                             if ( (str(i).strip() == '') or (pd.isnull(i)) )
                             else str(i).strip()
                             if ( (isinstance(i, (float, int))) or ("sde.next_" in str(i)) )
-                            else "'{}'".format(str(i).replace("'","").replace('"',""))  
+                            else "'{}'".format(str(i).replace("'","''").replace('"',""))  
                             for i in x
                         ]
                     )

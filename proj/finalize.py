@@ -20,7 +20,7 @@ def savechanges():
 
     sessionid = session.get('sessionid')
     submissionid = session.get('submissionid')
-    login_info = json.dumps(session.get('login_fields')).replace("'","")
+    login_info = json.dumps(session.get('login_fields')).replace("'","''")
 
     # Both provided when the user signs in (auth.signin)
     session_user_email = str(session.get('session_user_email'))
@@ -55,25 +55,25 @@ def savechanges():
             if datatype == 'datetime64[ns]':
                 changed[colname] = changed[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
             if colname == 'resqualcode':
-                changed[colname] = changed[colname].str.replace("'","")
+                changed[colname] = changed[colname].str.replace("'","''")
         
         for colname,datatype in original.dtypes.to_dict().items():
             if datatype == 'datetime64[ns]':
                 original[colname] = original[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
             if colname == 'resqualcode':
-                original[colname] = original[colname].str.replace("'","")
+                original[colname] = original[colname].str.replace("'","''")
         
         for colname,datatype in added.dtypes.to_dict().items():
             if datatype == 'datetime64[ns]':
                 added[colname] = added[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
             if colname == 'resqualcode':
-                added[colname] = added[colname].str.replace("'","")
+                added[colname] = added[colname].str.replace("'","''")
         
         for colname,datatype in deleted.dtypes.to_dict().items():
             if datatype == 'datetime64[ns]':
                 deleted[colname] = deleted[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
             if colname == 'resqualcode':
-                deleted[colname] = deleted[colname].str.replace("'","")
+                deleted[colname] = deleted[colname].str.replace("'","''")
 
 
         change_comment = session.pop('comment', '')
@@ -94,7 +94,7 @@ def savechanges():
                 f"""
                     (
                         '[]',
-                        '{json.dumps(row.to_dict()).replace("'","")}',
+                        '{json.dumps(row.to_dict()).replace("'","''")}',
                         {sessionid},
                         {submissionid},
                         '{login_info}',
@@ -111,7 +111,7 @@ def savechanges():
                 lambda row:
                 f"""
                     (
-                        '{json.dumps(row.to_dict()).replace("'","")}',
+                        '{json.dumps(row.to_dict()).replace("'","''")}',
                         '[]',
                         {sessionid},
                         {submissionid},

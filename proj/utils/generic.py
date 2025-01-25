@@ -38,8 +38,8 @@ def unixtime(dt):
 
 def change_history_update(row, original_df, sessionid, submissionid, login_info, organization, email_address, change_comment):
     original_record = original_df[original_df.objectid == row.objectid]
-    changed_record = json.dumps(row.to_dict()).replace("'","")
-    original_record = json.dumps(pd.DataFrame(original_record).to_dict('records')).replace("'","")
+    changed_record = json.dumps(row.to_dict()).replace("'","''")
+    original_record = json.dumps(pd.DataFrame(original_record).to_dict('records')).replace("'","''")
     sql = f"""
         (
             '{original_record}',

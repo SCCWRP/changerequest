@@ -12,9 +12,14 @@ export const addTips = function () {
                         tooltip.querySelector('.title').textContent = title;
                         tooltip.querySelector('.content').innerHTML = content;
 
-                        tooltip.style.left = `${rect.left + window.pageXOffset + 5}px`;
-                        tooltip.style.top = `${rect.top + window.pageYOffset - (rect.height / 1.4)}px`;
-                        // tooltip.style.top = `${rect.top + window.pageYOffset}px`;
+                        // tooltip.style.left = `${rect.left + window.pageXOffset + 5}px`;
+                        // tooltip.style.top = `${rect.top + window.pageYOffset - (rect.height / 1.4)}px`;
+                        // // tooltip.style.top = `${rect.top + window.pageYOffset}px`;
+
+                        // Position bottom-left corner of tooltip at vertical center of cell
+                        tooltip.style.left = `${rect.left + window.pageXOffset}px`;
+                        tooltip.style.top = `${rect.top + window.pageYOffset + rect.height / 2 - tooltip.offsetHeight}px`;
+
 
 
                         tooltip.style.display = 'block';

@@ -22,7 +22,6 @@ from .custom import *
 pd.set_option('display.max_columns', None)
 
 
-
 ###############################################################
 # These routes are set up for javascript to fetch information #
 ###############################################################

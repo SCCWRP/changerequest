@@ -1,0 +1,31 @@
+{% extends 'base.jinja2' %}
+{% block session_user_info %} {{ super() }} {% endblock %}
+{% block body %}
+<div class="container main-container">
+    <br>
+    <div class="container">
+        {%if success%}
+            <p>
+                Thank you! SCCWRP has received your request to change your submission. Below the information about the submission and the change request are listed.
+                You will also receive a receipt via email.
+            </p>
+            <p>Successful change request received from {{session_user_email}}</p>
+            <p>Datatype: {{datatype}}</p>
+            <p>Original Submission Date: {{submissiondate}}</p>
+            <p>Original Submission ID#: {{submissionid}}</p>
+            <p>Change Request ID#: {{change_id}}</p>
+            {% for key in login_fields %}
+            <p>{{key}}: {{login_fields[key]}}</p>
+            {% endfor %}
+        {%else%}
+            <p>We are sorry, something went wrong. SCCWRP staff has been notified.</p>
+        {%endif%}
+        <a class="btn btn-primary" role="button" href="{{request.script_root}}">Back to main page</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{url_for('static', filename='login_form.js')}}"></script>
+{% endblock %}

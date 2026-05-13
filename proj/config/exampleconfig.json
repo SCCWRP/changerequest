@@ -1,0 +1,28 @@
+{
+    "maintainers" : ["robertb@sccwrp.org"],
+    "mail_server"     : "192.168.1.18",
+    "send_from"    : "admin@checker.sccwrp.org",
+    "projectname" : "Example Project",
+    "custom_unchanging_fields" : [],
+    "dtypes": {
+        "chemistry" : {
+            "human_friendly_dtype_name" : "Chemistry",
+            "tables": ["tbl_chemistryresults"],
+            "login_fields": [
+                {"fieldname": "email", "fieldtype": "input", "fieldlabel": "Email"},
+                {"fieldname": "agency", "fieldtype": "select", "fieldlabel": "Agency"}
+            ],
+            "custom_checks_functions" : {
+                "tbl_chemistryresults": "chemistry"
+            }
+        }
+    },
+    "user_management" :{
+        "users_table": "db_editors",
+        "organization_login_field": "agency",
+        "organization_signup_field_label": "Agency",
+        "organization_table": "lu_agency",
+        "organization_value_column": "agencycode",
+        "organization_label_column": "agencyname"
+    }
+}

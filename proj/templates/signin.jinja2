@@ -1,0 +1,69 @@
+{% extends 'base.jinja2' %}
+
+{% block body %}
+<div class="container main-container">
+    <div class="card mt-5">
+        <div class="card-header">
+            Sign in to edit data
+        </div>
+        <div class="card-body">
+            {% for message in get_flashed_messages() %}
+            <div class="alert alert-warning">
+                <button
+                type="button"
+                class="close"
+                data-dismiss="alert">
+                    x
+                </button>
+                {{ message }}
+            </div>
+            {% endfor %}
+            <form id="sign-up-form" method="POST" action="{{request.script_root}}/auth/signin">
+                {{form.csrf_token}}
+
+                <div class="form-group">
+                    <fieldset>
+                        {{form.email.label}}
+                        {{form.email}}
+                        {% if form.email.errors %}
+                        <ul class="errors">
+                            {% for error in form.email.errors %}
+                            <li>{{ error }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
+                </div>
+
+                <div class="form-group">
+                    <fieldset>
+                        {{form.password.label}}
+                        {{form.password}}
+                        {% if form.password.errors %}
+                        <ul class="errors">
+                            {% for error in form.password.errors %}
+                            <li>{{ error }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
+                </div>
+
+                <div class="form-group submit-button">
+                    <fieldset>
+                        {{form.submit}}
+                    </fieldset>
+                </div>
+
+            </form>
+
+            <div class="row mt-3">
+                <div class="col-sm-6">
+                    <a href="{{url_for('auth.signup')}}" class="btn btn-outline-dark">Sign up</a>
+                </div>
+                <div class="col-sm-6">
+                    <a href="{{url_for('auth.reset_request')}}" class="btn btn-outline-dark">Forgot Password?</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+Removed meta from the config file
+
+Reason being that meta data submissions come through survey 123 rather than a checker application
+
+"meta": {
+    "human_friendly_dtype_name": "Site Metadata",
+    "tables": [
+        "mobile_testsite","mobile_bmp","mobile_catchment","mobile_monitoringstation"
+    ],
+    "login_fields": [
+        {"fieldname": "dataprovider", "fieldtype": "select", "fieldlabel": "Agency"},
+        {"fieldname": "email", "fieldtype": "select", "fieldlabel": "Email"}
+    ],
+    "custom_checks_functions" : {
+        "mobile_testsite": "testsite",
+        "mobile_bmp": "bmp",
+        "mobile_catchment": "catchment",
+        "mobile_monitoringstation": "monitoringstation"
+    }
+}

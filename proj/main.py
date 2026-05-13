@@ -22,7 +22,6 @@ from .custom import *
 pd.set_option('display.max_columns', None)
 
 
-
 ###############################################################
 # These routes are set up for javascript to fetch information #
 ###############################################################
@@ -50,7 +49,7 @@ def main():
 
         # df_modified will be the data the user uploaded
         # I think result and mdl are read in as object since they are character fields in the SMC database
-        df_modified = pd.read_excel(changed_data_path, dtype={'result': object, 'mdl': object}, keep_default_na = False, na_values = [''])
+        df_modified = pd.read_excel(changed_data_path, dtype={'result': object, 'mdl': object, 'bioaccumulationsampleid': object}, keep_default_na = False, na_values = [''])
 
         # flush the temporary table if they give us a new file
         eng.execute("DELETE FROM tmp.{};".format(session['modified_tablename']))
@@ -452,7 +451,7 @@ def main():
                             if ( (str(i).strip() == '') or (pd.isnull(i)) )
                             else str(i).strip()
                             if ( (isinstance(i, (float, int))) or ("sde.next_" in str(i)) )
-                            else "'{}'".format(str(i).replace("'","").replace('"',""))  
+                            else "'{}'".format(str(i).replace("'","''").replace('"',""))  
                             for i in x
                         ]
                     )

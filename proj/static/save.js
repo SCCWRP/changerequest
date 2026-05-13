@@ -79,3 +79,68 @@ export const saveChanges = function() {
         alert("No changes were made")
     }
 }
+
+export async function confirmFinalize(event) {
+
+    window.onbeforeunload = undefined;
+
+    // Ask for confirmation and store the result
+    const confirmation = confirm('Are you sure you want to finalize this change request?');
+
+    // If not confirmed, prevent further action
+    if (!confirmation) {
+        event.preventDefault(); // Prevent form submission
+        return false;
+    }
+
+    // Prompt for a comment
+    const comment = prompt('Please enter a comment about why you are requesting a change to the data:');
+
+    // Check if a comment was entered
+    if (!comment) {
+        alert('You must enter a comment to proceed.');
+        event.preventDefault(); // Prevent form submission
+        return false;
+    }
+
+    // Send the comment to the server
+    try {
+        const response = await fetch('savecomment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ comment: comment })
+        });
+
+        if (!response.ok) {
+            event.preventDefault(); // Prevent form submission
+            throw new Error(`Server error: ${response.statusText}`);
+        }
+
+        console.log('Comment saved successfully');
+    } catch (error) {
+        console.error('Failed to save comment:', error);
+        alert('There was an error saving your comment. Please try again.');
+        event.preventDefault(); // Prevent form submission
+        return false;
+    }
+
+    // Return true to allow the form submission
+    console.log("All checks passed, form will now submit."); // Debugging statement
+    return true;
+}
+
+// Attach the function to the form programmatically
+document.getElementById('final-submit-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+     
+    const result = await confirmFinalize(event);
+    if (!result) {
+        console.log("Form submission prevented."); // Debugging statement
+        return    
+    } else {
+        console.log("Form submission allowed."); // Debugging statement
+        this.submit()
+    }
+});

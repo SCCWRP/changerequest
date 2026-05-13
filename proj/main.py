@@ -49,7 +49,7 @@ def main():
 
         # df_modified will be the data the user uploaded
         # I think result and mdl are read in as object since they are character fields in the SMC database
-        df_modified = pd.read_excel(changed_data_path, dtype={'result': object, 'mdl': object}, keep_default_na = False, na_values = [''])
+        df_modified = pd.read_excel(changed_data_path, dtype={'result': object, 'mdl': object, 'bioaccumulationsampleid': object}, keep_default_na = False, na_values = [''])
 
         # flush the temporary table if they give us a new file
         eng.execute("DELETE FROM tmp.{};".format(session['modified_tablename']))

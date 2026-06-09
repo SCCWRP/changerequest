@@ -42,9 +42,13 @@
                 const submissionIdSelect = document.getElementById(`${dtype}-submissionid-select`);
 
                 submissionIdSelect.innerHTML = '';
-                submissions.forEach(s => {
-                    submissionIdSelect.innerHTML += `<option value="${s.submissionid}"> SubmissionID: ${s.submissionid} (Submitted on ${s.submissiondate})</option>`
-                })
+                if (submissions.length === 0) {
+                    submissionIdSelect.innerHTML = `<option value="" disabled selected>No SubmissionID Found for this Agency and email</option>`;
+                } else {
+                    submissions.forEach(s => {
+                        submissionIdSelect.innerHTML += `<option value="${s.submissionid}"> SubmissionID: ${s.submissionid} (Submitted on ${s.submissiondate})</option>`
+                    });
+                }
 
                 return;
             }

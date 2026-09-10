@@ -33,7 +33,7 @@
                 <p class="alert alert-warning">This submission already has an unprocessed deletion request. Further edit requests are still allowed.</p>
                 {% endif %}
                 <div id="omitted-sheets-notice" class="alert alert-warning alert-dismissible" role="alert">
-                    Omitted sheets are left unchanged. Empty sheets are rejected; they never delete a whole table.
+                    Omitted sheets are left unchanged. A sheet with column headers but no data rows requests deletion of all records in that table for this submission, subject to SCCWRP review.
                     <button type="button" id="dismiss-omitted-sheets-notice" class="close" aria-label="Dismiss omitted sheets notice" title="Dismiss notice">
                         <span aria-hidden="true">&times;</span>
                     </button>

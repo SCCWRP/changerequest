@@ -24,6 +24,13 @@ comparison = Blueprint('comparison', __name__)
 def check_submission(frames):
     results = {}
     for table, frame in frames.items():
+        if frame.empty:
+            store_candidate(g.eng, table, session['sessionid'], frame)
+            results[table] = {'errors': [], 'warnings': [{
+                'table': table,
+                'error_message': 'Empty sheet: deletion requested for all records in this table for this submission.',
+            }]}
+            continue
         output = core(df=deepcopy(frame), tblname=table, eng=g.eng, debug=True)
         errors = [error for error in output['core_errors'] if error]
         warnings = [warning for warning in output['core_warnings'] if warning]
@@ -72,6 +79,10 @@ def compare_submission(frames, metadata, missing):
         frame = checked[table]
         if checks[table]['errors']:
             reports[table] = table_report(frame, empty, empty, [], checks[table], [int(value) for value in frame.objectid])
+            continue
+        if frame.empty:
+            reports[table] = table_report(empty, empty, original, [], checks[table], [])
+            differences[table] = {'Original': empty, 'Modified': empty, 'Added': empty, 'Deleted': original, 'changes': []}
             continue
         primary_key = get_primary_key(table, g.eng)
         if not primary_key:

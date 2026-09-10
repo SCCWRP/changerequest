@@ -68,16 +68,59 @@ class WorkbookTests(unittest.TestCase):
         self.assertEqual(list(resolved), ['tbl_flow'])
         self.assertEqual(missing, [])
 
-    def test_reject_ambiguous_duplicate_unknown_and_empty_sheets(self):
+    def test_empty_sheet_is_present_and_missing_sheet_is_unchanged(self):
+        frame = Frame(['key'], empty=True)
+        resolved, missing = workbooks.resolve_sheets({'first': frame}, {'first': ['key'], 'second': ['key']})
+        self.assertIs(resolved['first'], frame)
+        self.assertEqual(missing, ['second'])
+
+    def test_empty_renamed_sheet_matches_by_columns(self):
+        resolved, missing = workbooks.resolve_sheets({'Renamed': Frame(['key'], empty=True)}, {'first': ['key']})
+        self.assertEqual(list(resolved), ['first'])
+        self.assertEqual(missing, [])
+
+    def test_reject_ambiguous_duplicate_unknown_and_headerless_sheets(self):
         cases = [
             ({'Renamed': Frame(['key'])}, {'first': ['key'], 'second': ['key']}),
             ({'first': Frame(['key']), 'Renamed': Frame(['key'])}, {'first': ['key']}),
             ({'first': Frame(['unexpected'])}, {'first': ['key']}),
-            ({'first': Frame(['key'], empty=True)}, {'first': ['key']}),
+            ({'first': Frame([], empty=True)}, {'first': ['key']}),
         ]
         for sheets, columns in cases:
             with self.subTest(sheets=sheets), self.assertRaises(ValueError):
                 workbooks.resolve_sheets(sheets, columns)
+
+
+class EmptySheetTests(unittest.TestCase):
+    def test_empty_sheet_deletes_only_selected_table_and_preserves_omitted_table(self):
+        original = pd.DataFrame([{'objectid': 41, 'key': 'first', 'value': 'original'},
+                                 {'objectid': 42, 'key': 'second', 'value': 'original'}])
+        stored = []
+        helpers = load_functions('proj/main.py', {
+            'session': {'sessionid': 456, 'tables': ['cleared', 'omitted']},
+            'g': SimpleNamespace(eng=object()),
+            'store_candidate': lambda eng, table, change_id, frame: stored.append((table, frame.copy())),
+            'read_snapshot': lambda eng, table, change_id, columns: original.copy(),
+            'htmltable': lambda frame, **kwargs: frame.to_html(index=False),
+        })
+        columns = original.columns.tolist()
+        empty = pd.DataFrame(columns=columns)
+        resolved, missing = workbooks.resolve_sheets({'cleared': empty}, {'cleared': columns, 'omitted': columns})
+        metadata = {table: (columns, columns) for table in ('cleared', 'omitted')}
+        reports, differences = helpers.compare_submission(resolved, metadata, missing)
+        self.assertEqual(reports['cleared']['counts'], {'modified': 0, 'added': 0, 'deleted': 2})
+        self.assertEqual(reports['cleared']['errors'], [])
+        self.assertIn('Empty sheet', reports['cleared']['warnings'][0]['error_message'])
+        pd.testing.assert_frame_equal(differences['cleared']['Deleted'], original)
+        self.assertEqual(reports['omitted']['counts'], {'modified': 0, 'added': 0, 'deleted': 0})
+        self.assertTrue(differences['omitted']['Deleted'].empty)
+        self.assertEqual([table for table, frame in stored], ['cleared'])
+        self.assertTrue(stored[0][1].empty)
+        helpers.apply_browser_edits(resolved, {'cleared': [], 'omitted': []},
+                                    {'cleared': columns, 'omitted': columns}, {'cleared': [], 'omitted': []})
+        repeated_reports, repeated_differences = helpers.compare_submission(resolved, metadata, missing)
+        self.assertEqual(repeated_reports['cleared']['counts']['deleted'], 2)
+        self.assertTrue(repeated_differences['omitted']['Deleted'].empty)
 
 
 class LineageTests(unittest.TestCase):
@@ -232,6 +275,19 @@ class ArtifactTests(unittest.TestCase):
             self.assertLess(sql.index('DELETE FROM "sde"."mobile_monitoringstation"'), sql.index('DELETE FROM "sde"."tbl_flow"'))
             self.assertEqual(written_sheets['Index'].to_dict('records'), workbooks.report_index(list(originals)))
             self.assertEqual(len(written_sheets), 9)
+
+            table_deletion = {table: dict(delta) for table, delta in differences.items()}
+            table_deletion['mobile_monitoringstation']['Deleted'] = differences['mobile_monitoringstation']['Deleted'].iloc[0:0].copy()
+            with patch.object(pd, 'ExcelWriter', return_value=WriterContext()), patch.object(pd.DataFrame, 'to_excel', write_sheet):
+                helpers.write_artifacts(object(), table_deletion, metadata, 'edit')
+            records = list(helpers.ledger_records(456))
+            self.assertEqual(records, [{'tablename': 'tbl_flow',
+                                       'original_record': originals['tbl_flow'][0][1], 'modified_record': '[]'}])
+            sql = (directory / 'request.sql').read_text()
+            self.assertIn('DELETE FROM "sde"."tbl_flow" WHERE objectid = 41 AND submissionid = 123;', sql)
+            self.assertNotIn('DELETE FROM "sde"."mobile_monitoringstation"', sql)
+            self.assertNotIn('SET deleted_at', sql)
+            self.assertIn("SET change_processed = 'Yes' WHERE change_id = 456", sql)
 
             first = differences['tbl_flow']
             first['Original'] = first['Deleted'].copy()

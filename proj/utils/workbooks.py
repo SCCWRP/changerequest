@@ -33,8 +33,6 @@ def resolve_sheets(sheets, columns):
             missing = sorted(set(columns[table]) - set(frame.columns))
             extra = sorted(set(frame.columns) - set(columns[table]))
             raise ValueError(f'{sheet}: missing columns {missing}; unexpected columns {extra}.')
-        if frame.empty:
-            raise ValueError(f'{sheet} is empty. Restore its records or omit the sheet to leave it unchanged. Use Request Submission Deletion to remove the whole submission.')
         resolved[table] = frame
     if not resolved:
         raise ValueError('The workbook contains no submission data sheets.')

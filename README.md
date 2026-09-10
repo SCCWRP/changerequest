@@ -59,14 +59,20 @@ querying the data tables themselves, not `submission_tracking_checksum`. Downloa
 one workbook with a sheet named for each populated table, edit it, and upload once.
 The report has a table selector above the Changed, Added, and Deleted record tabs,
 with per-table primary keys, counts, errors, and warnings. Core and configured
-table-level custom checks run on each supplied table. `check_submission(frames)`
+table-level custom checks run on each supplied nonempty table. `check_submission(frames)`
 is the dictionary-of-dataframes boundary for a future datatype-level check; no
 cross-table custom checks have been added.
 
 Upload matching prefers the generated sheet name, then an exact column-set match.
 Ambiguous, unknown, duplicate, and structurally invalid sheets are rejected.
-Missing sheets mean **no changes** to those tables and produce a warning. An empty
-sheet is rejected: omission must never accidentally request deletion of a table.
+Missing sheets mean **no changes** to those tables and produce a warning. A sheet
+with the expected column headers but no data rows requests deletion of **all records
+in that table for this submission**. Headerless sheets are still rejected. Empty
+tables skip row-level checks, and the report lists the original rows under Deleted
+Records with a warning. Their full original JSON is archived through the same
+history pipeline as other record deletions. This remains an `edit` request and does
+not mark the submission tracking row deleted, even if every supplied sheet is empty;
+use Request Submission Deletion to also mark the whole submission deleted.
 Individual row deletions and primary-key replacements within nonempty sheets are
 still supported. Browser corrections retain other rows and other tables; new
 uploads replace the previous comparison. Finalization is refused after errors,

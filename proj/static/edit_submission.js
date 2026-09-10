@@ -126,6 +126,3 @@ document.addEventListener('drop', event => {
     uploadForm.dispatchEvent(new Event('submit', {cancelable: true}));
 });
 window.onbeforeunload = () => dirty || report ? true : undefined;
-if (deletionButton?.dataset.initial === 'true') {
-    deletionButton.click();
-}

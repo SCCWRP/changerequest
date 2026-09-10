@@ -38,9 +38,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                {% if deletion_mode %}
-                <button type="button" id="request-deletion" class="btn btn-outline-danger" data-initial="{{ 'true' if deletion_mode else 'false' }}">Request Submission Deletion</button>
-                {% endif %}
+                <button type="button" id="request-deletion" class="btn btn-outline-danger">Request Submission Deletion</button>
                 <p id="request-status" role="status"></p>
                 <div class="row">
                     <div class="col-md-6">

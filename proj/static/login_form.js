@@ -41,7 +41,6 @@
                 message.textContent = 'Select all login fields and a submission ID.';
                 return;
             }
-            const action = event.submitter?.value || 'edit';
             const body = new FormData(form);
             body.set('dtype', dtype);
             const overlay = document.getElementById('overlay');
@@ -50,7 +49,7 @@
                 const response = await fetch(`${root}/post-session-data`, {method: 'POST', body});
                 const data = await response.json();
                 if (!response.ok || data.message !== 'Success') throw new Error(data.user_error_msg || 'Submission setup failed.');
-                window.location = `${root}/edit-submission?action=${action}`;
+                window.location = `${root}/edit-submission`;
             } catch (error) {
                 message.textContent = error.message;
             } finally {

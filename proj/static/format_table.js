@@ -176,11 +176,15 @@ function tableNavigation(){
     let tabs = document.querySelectorAll('.datatable-tab-button');
 
     // Add click event listener to each tab button
-    tabs.forEach(tab => {
+    tabs.forEach((tab, position) => {
         tab.onclick = function() {
             // Remove 'active' class from all tab buttons and datatable containers
             document.querySelectorAll('.datatable-tab-button, .datatable-container').forEach(el => {
                 el.classList.remove('active');
+            });
+            tabs.forEach(item => {
+                item.setAttribute('aria-selected', String(item === this));
+                item.tabIndex = item === this ? 0 : -1;
             });
 
             // Add 'active' class to clicked tab button
@@ -192,10 +196,19 @@ function tableNavigation(){
             // Add 'active' class to target datatable container
             document.getElementById(target).classList.add('active');
         };
+        tab.onkeydown = event => {
+            const offsets = {ArrowRight: 1, ArrowLeft: -1};
+            if (event.key in offsets) {
+                event.preventDefault();
+                const next = tabs[(position + offsets[event.key] + tabs.length) % tabs.length];
+                next.click();
+                next.focus();
+            }
+        };
     });
 
     // Initialize the first tab as active
-    document.querySelector('.datatable-tab-button').click();
+    document.querySelector('.datatable-tab-button').onclick();
 
 
 }

@@ -1,90 +1,69 @@
 {% extends 'base.jinja2' %}
-{% block session_user_info %} {{ super() }} {% endblock %}
 {% block body %}
-
-    {# <div class="card-header"></div> #}
-    <div class="container main-container">
-        <br>
-            <!--bootstrap-->
-                {# <div class="d-flex justify-content-center h-100"> #}
-                    <div class="card" id="login-form-container">
-                        <div class="card-header">
-                            <h4>Choose a Datatype</h4>
-                            {# <nav class="navbar navbar-light bg-light navbar-top" id="main-top-navbar"> #}
-                            <nav class="navbar navbar-top row" id="main-top-navbar">
-                                {% for dtype in dtypes.keys() %}
-                                    {% if loop.index == 1 %}
-                                    <div class="tab-header infotab-header active" id="{{dtype}}-header" data-dtype="{{dtype}}">
-                                        {{dtypes[dtype]['human_friendly_dtype_name']}}
-                                    </div>
-                                    {% else %}
-                                    <div class="tab-header infotab-header" id="{{dtype}}-header" data-dtype="{{dtype}}">
-                                        {{dtypes[dtype]['human_friendly_dtype_name']}}
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </nav>
-                        </div>
-                        <div class="card-body">
-                        {% for dtype in dtypes.keys() %}
-                            {% if loop.index == 1 %}
-                            <div class="form-container" id="{{dtype}}-form-container" data-dtype="{{dtype}}">
+<div class="workspace search-workspace">
+    <div class="page-heading">
+        <div><span class="eyebrow">Submission workspace</span><h1>Find a submission</h1><p>BMP monitoring data &amp; site metadata</p></div>
+        <span class="text-muted">Change requests <span aria-hidden="true">/</span> Submission lookup</span>
+    </div>
+    <div class="search-layout">
+        <section class="search-panel" id="login-form-container" aria-labelledby="search-heading">
+            <div class="search-panel-heading"><h2 id="search-heading">Submission lookup</h2></div>
+            <nav class="datatype-tabs" aria-label="Datatype">
+                {% for dtype, settings in dtypes.items() %}
+                <button type="button" class="infotab-header{% if loop.first %} active{% endif %}" id="{{dtype}}-header" data-dtype="{{dtype}}" aria-pressed="{{ 'true' if loop.first else 'false' }}" aria-controls="{{dtype}}-form-container">{{settings['human_friendly_dtype_name']}}</button>
+                {% endfor %}
+            </nav>
+            {% for dtype, settings in dtypes.items() %}
+            <div class="form-container{% if not loop.first %} hidden{% endif %}" id="{{dtype}}-form-container" data-dtype="{{dtype}}">
+                <form class="fetch-submission-form" id="{{dtype}}-form" data-dtype="{{dtype}}">
+                    <div class="search-fields">
+                        {% for field in settings['login_fields'] %}
+                        <div class="field">
+                            <label for="{{dtype}}-{{field.fieldname}}-{{field.fieldtype}}">{{field.fieldlabel or field.fieldname}}</label>
+                            {% if field.fieldtype == 'select' %}
+                            <select name="{{field.fieldname}}" id="{{dtype}}-{{field.fieldname}}-{{field.fieldtype}}" class="login-field-element" data-dtype="{{dtype}}" data-index="{{loop.index}}" required disabled>
+                                <option value="">{{ 'Loading options...' if loop.first else 'Select previous field first' }}</option>
+                            </select>
                             {% else %}
-                            <div class="form-container hidden" id="{{dtype}}-form-container" data-dtype="{{dtype}}">
+                            <input name="{{field.fieldname}}" id="{{dtype}}-{{field.fieldname}}-{{field.fieldtype}}" class="login-field-element" data-dtype="{{dtype}}" data-index="{{loop.index}}" required>
                             {% endif %}
-                                <form class="fetch-submission-form" id="{{dtype}}-form" data-dtype="{{dtype}}">
-                                    
-                                    {% for field in dtypes[dtype]['login_fields'] %}
-                                    <div class="input-group form-group">
-                                        <div class = "{{field.fieldtype}}-form-container">
-                                            <label for="{{field.fieldname}}">{% if field.fieldlabel %}{{field.fieldlabel}}{% else %}{{field.fieldname}}{% endif %}:</label>
-                                            <{{field.fieldtype}} name="{{field.fieldname}}" id="{{dtype}}-{{field.fieldname}}-{{field.fieldtype}}" class="login-field-{{field.fieldtype}} login-field-element {{dtype}}-login-field-{{field.fieldtype}} {{dtype}}-login-field-element" data-dtype="{{dtype}}" data-index="{{loop.index}}">
-                                            {% if field.fieldtype == 'select' %}
-                                            </{{field.fieldtype}}>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                    <div class="input-group form-group">
-                                        <div class = "select-form-container">
-                                            <label for="submissionid">Submission ID:</label>
-                                            <select name="submissionid" id="{{dtype}}-submissionid-select" class="login-field-select {{dtype}}-login-field-select {{dtype}}-login-field-element" data-dtype="{{dtype}}">
-                                            </select>
-                                        </div>
-                                    </div>
-                                    
-                                    <p id="{{dtype}}-submission-message" role="status"></p>
-
-                                    
-                                    
-                                    <!--<div class="form-group">
-                                        <button id="{{dtype}}-submission-preview" class="btn btn-info btn-submission-preview" data-dtype="{{dtype}}">Preview Submission</button>
-                                    </div> -->
-
-                                    <div class="form-group">
-                                        <button type="submit" data-dtype="{{dtype}}" id="{{dtype}}-form-submit" class="btn login_btn" value="edit">Edit Submission</button>
-                                    </div>
-                                </form>
-                            </div>
-                        {% endfor %}
                         </div>
-                    
+                        {% endfor %}
+                        <div class="field submission-field">
+                            <label for="{{dtype}}-submissionid-select">Submission</label>
+                            <select name="submissionid" id="{{dtype}}-submissionid-select" class="login-field-element" data-dtype="{{dtype}}" required disabled>
+                                <option value="">Select agency and email first</option>
+                            </select>
+                        </div>
                     </div>
-                {# </div> #}
-            <!-- end bootstrap-->
-
-        </div>
-
-        <div id="overlay">
-            <div id="overlay-text-container">
-                <p>Loading Data...</p>
-                <img src="{{url_for('static', filename='loader.gif')}}">
+                    <div class="search-submit">
+                        <p id="{{dtype}}-submission-message" class="status-message" role="status" aria-live="polite"></p>
+                        <button type="submit" id="{{dtype}}-form-submit" class="btn btn-primary login_btn" value="edit" disabled>Open submission <i class="icon icon-arrow-right" aria-hidden="true"></i></button>
+                    </div>
+                </form>
             </div>
-        </div>
-
+            {% endfor %}
+        </section>
+        <aside class="search-aside" aria-label="Submission access">
+            <span class="eyebrow">Your workspace</span>
+            <h3>{{current_user.organization}}</h3>
+            <dl>
+                <div><i class="icon icon-building-2" aria-hidden="true"></i><span><dt>Agency access</dt><dd>{{ 'Administrator' if current_user.is_admin == 'yes' else 'Authorized agency editor' }}</dd></span></div>
+                <div><i class="icon icon-circle-check" aria-hidden="true"></i><span><dt>Submission status</dt><dd>Completed, non-deleted submissions</dd></span></div>
+                <div><i class="icon icon-clipboard-check" aria-hidden="true"></i><span><dt>Final review</dt><dd>SCCWRP data management</dd></span></div>
+            </dl>
+            <p class="aside-note">Production data changes only after staff review and approval.</p>
+        </aside>
+    </div>
+</div>
+<div id="overlay" class="loading-overlay" role="status" aria-live="polite" aria-label="Loading submission">
+    <div id="overlay-text-container" class="loading-panel">
+        <img src="{{url_for('static', filename='loader.gif')}}" alt="">
+        <strong>Opening submission</strong><p>Preparing your workbook&hellip;</p>
+    </div>
+</div>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
 <script src="{{url_for('static',filename='login_form.js')}}"></script>
 {% endblock %}
-  

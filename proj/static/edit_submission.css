@@ -1,186 +1,110 @@
-td.accepted-change {
-    background-color: green;
-}
-td.rejected-change {
-    background-color: red;
-}
-.hidden {
-    display: none;
-}
-td {
-    border: 1px solid black;
-    padding-left: 3px;
-}
-th {
-    border: 1px solid black;
-    padding: 3px;
-} 
-
-
-.dataTable {
-    border: 1px solid black;
-    border-radius: 3px;
-    height: 500px; 
-    width: 100%; 
-    overflow: auto;
-    position: relative;
-    
-}
-.dataTable::-webkit-scrollbar {
-    -webkit-appearance: none;
-}
-
-.dataTable::-webkit-scrollbar:vertical {
-    width: 11px;
-}
-
-.dataTable::-webkit-scrollbar:horizontal {
-    height: 11px;
-}
-
-.dataTable::-webkit-scrollbar-thumb {
-    border-radius: 8px;
-    border: 2px solid white; /* should match background, can't be transparent */
-    background-color: rgba(0, 0, 0, .5);
-}
-
-.card {
-    width: 80%;
-}
-
-.card-header {
-    justify-content: center;
-    text-align: center;
-}
-
-.card-body {
-    padding: 10px;
-}
-
-.datatable-container {
-    margin-top:2.5rem;
-}
-.datatable-label {
-    margin-bottom:0;
-}
-
-#changed-records-datatable-container {
-    margin-top:0.5rem;
-}
-
-.tooltip#changed-cell-tooltip {
-    position: absolute;
-    padding: 10px;
-    background-color: #ffffff;
-    border: 1px solid #cccccc;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    display: none;
-    opacity: 1;
-    z-index: 1000; /* to ensure the tooltip appears on top */
-    overflow: visible; /* Add this to ensure the triangle is not cut off */
-}
-/* Create the triangle using a pseudo element */
-.tooltip:after {
-    content: "";
-    position: absolute;
-    bottom: -10px; /* Position the triangle - adjust as needed */
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent; /* Size of the triangle - adjust as needed */
-    border-right: 10px solid transparent; /* Size of the triangle - adjust as needed */
-    border-top: 10px solid #fff; /* Size and color of the triangle - adjust as needed */
-}
-
-.tooltip .title {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.tooltip .content {
-    font-size: 14px;
-}
-
-.changed-cell {
-    cursor: pointer;
-}
-
-/* Hide all datatable containers by default */
-.datatable-container {
-    display: none;
-}
-
-/* Show the active datatable container */
-.datatable-container.active {
-    display: block;
-}
-
-/* Additional style for active tab */
-.btn.datatable-tab-button.active {
-    background-color: darkblue !important;  /* Using !important to override Bootstrap's active style */
-    color: #fff;
-}
-.btn.datatable-tab-button {
-    margin: 0.5rem;
-}
-
-.records-display-inner-container {
-    border: 1px solid black;
-    border-radius: 3px;
-    position: relative;
-    height: 500px;
-    overflow: auto;
-}
-
-
-.records-display-inner-container thead th {
-    border: 1px solid black;
-    position: sticky;
-    top: 0;
-    z-index:2
-}
-
-.records-display-inner-container thead th {
-    border: 1px solid black;
-    position: sticky;
-    top: 0;
-    background-color: #dbdbdb;
-    z-index: 1; /* This ensures the header is drawn over the table rows when scrolling */
-    margin-bottom: 2px;
-    box-shadow: 0px -2px 0px 0px black, 0px 2px 0px 0px black;
-}
-
-.records-display-inner-container table {
-    width: 100%;
-}
-
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding:7rem;
-}
-
-.modal-content {
-    background-color: #fefefe;
-    padding: 4rem;
-    border: 1px solid #888;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-img#loader-gif {
-    width: 100px;
-    height: 100px;
+.editor-workspace { padding-top: 25px; font-size: 16px; }
+.editor-workspace .eyebrow, .editor-workspace label, .request-dialog label { font-size: 14px; }
+.editor-workspace .btn, .request-dialog .btn { font-size: 15px; }
+.editor-workspace .alert, .request-dialog .alert { font-size: 14px; }
+.request-dialog input, .request-dialog textarea { font-size: 16px !important; }
+.breadcrumb-link { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; margin-bottom: 22px; }
+.editor-heading { margin-bottom: 20px; }
+.editor-heading h1 { font-size: 24px; }
+.editor-heading .mono { font-size: 24px; }
+.workflow-status { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 4px; padding: 5px 9px; font-size: 14px; background: white; color: var(--muted); }
+.workflow-status.ready { background: var(--accent-soft); color: var(--accent); border-color: #bedbcb; }
+.workflow-status.needs-review { background: var(--warning-soft); color: var(--warning); border-color: #eadfb5; }
+.submission-meta { display: flex; flex-wrap: wrap; gap: 20px 42px; padding: 17px 0 21px; margin: 0 0 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.submission-meta div { min-width: 0; max-width: 100%; }
+.submission-meta dt { color: var(--muted); font-size: 14px; text-transform: uppercase; font-weight: 500; }
+.submission-meta dd { font-size: 16px; font-weight: 500; margin: 4px 0 0; overflow-wrap: anywhere; }
+.workbook-toolbar { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 28px; align-items: center; margin: 24px 0; }
+.download-section { border-right: 1px solid var(--line); padding-right: 28px; }
+.section-label { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+.step-number { color: var(--muted); font-family: var(--mono); font-weight: 400; font-size: 14px; }
+.upload-section { min-width: 0; }
+.upload-form { display: flex; align-items: center; gap: 12px; }
+.file-picker { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; min-height: 44px; border: 1px dashed #b4c8bb; border-radius: 5px; padding: 9px 13px; background: #ffffffb3; }
+.file-picker:focus-within { outline: 3px solid #258aaf; outline-offset: 2px; }
+.file-picker .icon { color: var(--accent); }
+.file-picker label { display: flex; gap: 8px; align-items: center; margin: 0; font-size: 15px; font-weight: 400; min-width: 0; }
+.file-picker strong { font-weight: 500; color: var(--accent); flex-shrink: 0; }
+.file-picker span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--muted); }
+.file-picker input[type=file] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.file-dragging .file-picker { background: var(--accent-soft); border: 2px solid var(--accent); }
+.submission-rules { margin-bottom: 24px; font-size: 15px; color: var(--muted); }
+.submission-rules summary { cursor: pointer; color: var(--ink); font-weight: 500; width: fit-content; }
+.submission-rules > div { padding: 14px 0 4px; max-width: 960px; }
+.submission-rules p { margin-bottom: 10px; }
+.submission-rules dl { display: grid; gap: 8px; }
+.submission-rules dt { color: var(--ink); font-weight: 500; }
+.submission-rules dd { margin: 0; overflow-wrap: anywhere; }
+.review-section { border-top: 1px solid var(--line); padding-top: 25px; }
+.review-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 17px; }
+.review-title h2 { margin: 0; }
+.review-placeholder { display: grid; place-items: center; min-height: 190px; background: #ffffff90; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: center; padding: 24px; }
+.review-placeholder .icon { color: #8baca0; font-size: 28px; margin-bottom: 12px; }
+.review-placeholder h3 { font-size: 16px; margin-bottom: 6px; }
+.review-placeholder p { font-size: 15px; color: var(--muted); margin: 0; }
+.report-toolbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 22px; margin-bottom: 12px; }
+.table-selector-field { width: min(400px, 100%); min-width: 0; }
+.table-selector-field select { font-family: var(--mono); font-size: 14px; }
+#report-counts { font-size: 14px; margin: 0 0 10px; color: var(--muted); }
+#report-primary-key { font-size: 14px; margin: 9px 0 17px; color: var(--muted); overflow-wrap: anywhere; }
+#report-warnings { color: var(--warning); background: var(--warning-soft); border-left: 3px solid #d8b450; padding: 12px 15px; margin-bottom: 16px; white-space: pre-line; font-size: 14px; }
+#report-warnings:empty { display: none; }
+#request-status { margin: 14px 0; color: var(--muted); font-size: 14px; }
+#request-status:empty { display: none; }
+#request-status.is-error { color: var(--danger); background: var(--danger-soft); padding: 12px 15px; border-left: 3px solid var(--danger); }
+#datatable-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--line); }
+.btn.datatable-tab-button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); background: transparent; padding: 10px 0 12px; font-size: 15px; min-height: 43px; }
+.btn.datatable-tab-button.active { color: var(--accent); border-bottom-color: var(--accent); background: transparent; }
+.tab-count { display: inline-block; min-width: 21px; text-align: center; padding: 1px 5px; border-radius: 3px; font-family: var(--mono); font-size: 13px; background: #e9efeb; color: var(--ink); }
+.datatable-container { display: none; }
+.datatable-container.active { display: block; }
+.records-display-inner-container { position: relative; max-height: 510px; min-height: 150px; overflow: auto; background: white; border: 1px solid var(--line); border-top: 0; }
+.records-display-inner-container table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.records-display-inner-container th { position: sticky; top: 0; z-index: 2; padding: 11px 14px; text-align: left; background: #edf2ee; border-bottom: 1px solid #cbd7ce; border-right: 1px solid var(--line); white-space: nowrap; font-size: 14px; font-weight: 600; }
+.records-display-inner-container td { padding: 9px 14px; border-right: 1px solid #e8eee9; border-bottom: 1px solid #e8eee9; white-space: nowrap; height: 38px; background: white; }
+.records-display-inner-container tr:nth-child(even) td { background: #f8faf8; }
+.records-display-inner-container td:first-child { color: var(--muted); font-family: var(--mono); font-size: 14px; }
+.records-display-inner-container td.accepted-change { background: #ddf2e7 !important; box-shadow: inset 0 -2px #4d9b77; color: #135c3d; }
+.records-display-inner-container td.rejected-change { background: #fde6e7 !important; box-shadow: inset 0 -2px #bf4958; color: #8e2534; }
+.records-display-inner-container td[contenteditable=true]:focus { outline: 2px solid var(--accent); outline-offset: -2px; white-space: pre-wrap; min-width: 120px; }
+.table-empty { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 15px; }
+.review-legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 14px; color: var(--muted); }
+.review-legend span { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 9px; height: 9px; border-radius: 2px; background: #86c7a5; }
+.legend-swatch.error { background: #d68189; }
+.review-actions { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 10px; padding: 18px 0; }
+.review-actions form { margin: 0; }
+.review-actions .action-caption { color: var(--muted); font-size: 14px; margin-right: auto; }
+.tooltip#changed-cell-tooltip { position: absolute; display: none; opacity: 1; z-index: 1100; padding: 12px 15px; max-width: min(320px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 5px; background: white; box-shadow: 0 6px 20px #23332f18; color: var(--ink); font-family: inherit; overflow-wrap: anywhere; pointer-events: none; }
+.tooltip .title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.tooltip .content { font-size: 14px; }
+.request-dialog { border: 1px solid var(--line); border-radius: 8px; padding: 0; width: min(520px, calc(100% - 32px)); max-height: calc(100dvh - 40px); overflow-y: auto; color: var(--ink); box-shadow: 0 20px 80px #23332f30; }
+.request-dialog::backdrop { background: #23332f77; backdrop-filter: blur(3px); }
+.dialog-heading { display: flex; justify-content: space-between; align-items: center; padding: 22px 24px 0; }
+.dialog-heading h2 { font-size: 20px; margin: 0; }
+.dialog-close { border: 0; background: transparent; width: 32px; height: 32px; color: var(--muted); border-radius: 4px; }
+.dialog-body { padding: 18px 24px 24px; }
+.dialog-body > p { font-size: 16px; color: var(--muted); }
+.dialog-body .field { margin-top: 19px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--line); background: #f7faf8; padding: 16px 24px; }
+.dialog-context { font: 14px var(--mono); background: var(--canvas); padding: 12px; border-radius: 4px; overflow-wrap: anywhere; }
+#finalize-error:empty { display: none; }
+@media (max-width: 900px) { .workbook-toolbar { grid-template-columns: 1fr; gap: 20px; } .download-section { border-right: 0; padding: 0; display: flex; gap: 18px; justify-content: space-between; align-items: center; } .download-section .section-label { margin: 0; } }
+@media (max-width: 600px) {
+    .editor-heading h1, .editor-heading .mono { font-size: 22px; }
+    .submission-meta { gap: 16px; flex-direction: column; }
+    .upload-form { flex-direction: column; align-items: stretch; }
+    .file-picker { flex: auto; }
+    .report-toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
+    .table-selector-field { width: 100%; }
+    .review-title { align-items: flex-start; flex-direction: column; gap: 10px; }
+    #datatable-tabs { gap: 20px; }
+    #datatable-tabs { gap: 12px; flex-wrap: wrap; }
+    .review-actions { justify-content: stretch; }
+    .review-actions .action-caption { width: 100%; }
+    .review-actions > .btn, .review-actions form, .review-actions form .btn { width: 100%; }
+    .records-display-inner-container { max-height: 420px; }
+    .dialog-heading { padding: 18px 18px 0; }
+    .dialog-body { padding: 16px 18px 20px; }
+    .dialog-actions { padding: 14px 18px; }
 }

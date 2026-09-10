@@ -2,36 +2,51 @@
 <html lang="en">
     <head>
         {% block head %}
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>SCCWRP Data Change Request</title>
         <script>
             let $SCRIPT_ROOT = {{request.script_root|tojson|safe}};
-            console.log("$SCRIPT_ROOT");
-            console.log($SCRIPT_ROOT);
             $SCRIPT_ROOT = $SCRIPT_ROOT.replace('/','');
         </script>
-        <link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSN1KajqxT6Orr6rQ1jb4BpLDf3wUnunW9ZvWwy_WWFrg&amp;s">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.468.0/font/lucide.css">
         <link rel="stylesheet" href="{{url_for('static',filename='changerequest.css')}}" />
         {% endblock %}
     </head>
     <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="app-header">
+        <a class="app-brand" href="{{url_for('login.index')}}" aria-label="SMC BMP Regional Monitoring Network submissions">
+            <img class="brand-logo" src="{{url_for('static', filename='sccwrp-logo.png')}}" alt="SCCWRP" width="80" height="55">
+            <span class="brand-text"><strong>SMC BMP Regional Monitoring Network</strong><span class="brand-caption">Data change requests</span></span>
+        </a>
+        <span class="program-label">SCCWRP <span>/</span> Southern California Stormwater Monitoring Coalition</span>
+        {% block session_user_info %}
+        {% if current_user.is_authenticated %}
+        <details class="account-menu">
+            <summary><span class="account-avatar" aria-hidden="true">{{current_user.email[0]|upper}}</span><span class="account-label">{{current_user.organization}}</span><i class="icon icon-chevron-down" aria-hidden="true"></i></summary>
+            <div class="account-popover">
+                <span class="eyebrow">Signed in</span>
+                <strong>{{current_user.email}}</strong>
+                <span>{{current_user.organization}}</span>
+                <a href="{{url_for('auth.logout')}}"><i class="icon icon-log-out" aria-hidden="true"></i> Sign out</a>
+            </div>
+        </details>
+        {% endif %}
+        {% endblock %}
+    </header>
     {% block tooltip %}
     {% endblock %}
-        {# <div class="card outer-card"> #}
-            {% block session_user_info %}
-            {% if current_user.is_authenticated %}
-            <div class="card-header login-session-info-header">
-                <p>You are logged in as: {{current_user.email}}</p>
-                <p>Your organization: {{current_user.organization}}</p>
-                <p><a href="{{url_for('auth.logout')}}">Sign out</a></p>
-            </div>
-            {% endif %}
-            {% endblock %}
+        <main id="main-content" tabindex="-1">
             {% block body %}{% endblock %}
-        {# </div> #}
-    </body>
-    
+        </main>
+        <footer class="app-footer"><span>Southern California Coastal Water Research Project</span><span>SMC BMP <span aria-hidden="true">/</span> Data stewardship</span></footer>
     {% block scripts %}
     <script src="{{url_for('static',filename='misc.js')}}"></script>
     {% endblock %}
+    </body>
 </html>

@@ -7,35 +7,70 @@ export async function saveChanges() {
     });
 }
 
+const dialog = document.getElementById('finalize-dialog');
+const detailsForm = document.getElementById('finalize-details-form');
+const finalForm = document.getElementById('final-submit-form');
+const commentInput = document.getElementById('request-comment');
+const confirmationInput = document.getElementById('deletion-confirmation');
+const errorMessage = document.getElementById('finalize-error');
+let sending = false;
+
 document.getElementById('save-change-btn').addEventListener('click', saveChanges);
-document.getElementById('final-submit-form').addEventListener('submit', async function(event) {
+document.querySelectorAll('[data-close-finalize]').forEach(button => button.addEventListener('click', () => {
+    if (!sending) dialog.close();
+}));
+dialog.addEventListener('cancel', event => {
+    if (sending) event.preventDefault();
+});
+commentInput.addEventListener('input', () => commentInput.setCustomValidity(''));
+confirmationInput.addEventListener('input', () => confirmationInput.setCustomValidity(''));
+
+finalForm.addEventListener('submit', event => {
     event.preventDefault();
     if (!report?.ready || document.getElementById('finalize-submission').classList.contains('hidden')) return;
     const deleting = report.request_type === 'delete';
-    let confirmation = '';
-    if (deleting) {
-        confirmation = prompt(`Deletion is irreversible once SCCWRP staff run the SQL. Type submission ID ${context.submissionid} to confirm:`);
-        if (confirmation?.trim() !== String(context.submissionid)) {
-            alert('The submission ID did not match. No deletion request was finalized.');
-            return;
-        }
-    } else if (!confirm('Finalize this submission edit request for SCCWRP review?')) {
+    document.getElementById('finalize-title').textContent = deleting ? 'Submit deletion request' : 'Submit change request';
+    document.getElementById('finalize-description').textContent = deleting
+        ? 'Deletion is irreversible once SCCWRP staff run the SQL. All records in this submission will be removed.'
+        : 'SCCWRP staff will review this request before applying changes.';
+    document.getElementById('deletion-confirmation-field').classList.toggle('hidden', !deleting);
+    document.getElementById('send-request-button').classList.toggle('btn-danger', deleting);
+    confirmationInput.required = deleting;
+    confirmationInput.value = '';
+    confirmationInput.setCustomValidity('');
+    commentInput.setCustomValidity('');
+    errorMessage.textContent = '';
+    dialog.showModal();
+    commentInput.focus();
+});
+
+detailsForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (sending || !report?.ready) return;
+    if (!commentInput.value.trim()) {
+        commentInput.setCustomValidity('Enter a reason for this request.');
+        commentInput.reportValidity();
         return;
     }
-    const comment = prompt(`Please explain why you are requesting ${deleting ? 'deletion of this submission' : 'these changes'}:`);
-    if (!comment?.trim()) {
-        alert('A non-empty comment is required.');
+    if (report.request_type === 'delete' && confirmationInput.value.trim() !== String(context.submissionid)) {
+        confirmationInput.setCustomValidity('The submission ID does not match.');
+        confirmationInput.reportValidity();
         return;
     }
-    document.getElementById('final-comment').value = comment.trim();
-    document.getElementById('final-confirmation').value = confirmation || '';
-    const loader = document.getElementById('loading-modal');
-    loader.style.display = 'block';
+    document.getElementById('final-comment').value = commentInput.value.trim();
+    document.getElementById('final-confirmation').value = confirmationInput.value.trim();
+    const sendButton = document.getElementById('send-request-button');
+    const label = sendButton.innerHTML;
+    sending = true;
+    dialog.setAttribute('aria-busy', 'true');
+    detailsForm.querySelectorAll('button, input, textarea').forEach(control => { control.disabled = true; });
+    sendButton.textContent = 'Sending request...';
+    errorMessage.textContent = '';
     try {
-        const response = await fetch(this.action, {method: 'POST', body: new FormData(this)});
+        const response = await fetch(finalForm.action, {method: 'POST', body: new FormData(finalForm)});
         if (!response.ok) {
             const data = await response.json();
-            throw new Error(data.message || 'Finalization failed.');
+            throw new Error(data.message || 'Finalization failed. Please try again.');
         }
         const page = await response.text();
         window.onbeforeunload = undefined;
@@ -43,8 +78,11 @@ document.getElementById('final-submit-form').addEventListener('submit', async fu
         document.write(page);
         document.close();
     } catch (error) {
-        alert(error.message);
+        errorMessage.textContent = error.message;
     } finally {
-        loader.style.display = 'none';
+        sending = false;
+        dialog.removeAttribute('aria-busy');
+        detailsForm.querySelectorAll('button, input, textarea').forEach(control => { control.disabled = false; });
+        sendButton.innerHTML = label;
     }
 });

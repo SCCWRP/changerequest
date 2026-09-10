@@ -1,31 +1,22 @@
 {% extends 'base.jinja2' %}
-{% block session_user_info %} {{ super() }} {% endblock %}
 {% block body %}
-<div class="container main-container">
-    <br>
-    <div class="container">
-        {%if success%}
-            <p>
-                SCCWRP has received your submission {{ 'deletion' if request_type == 'delete' else 'edit' }} request. No production data has been changed by this app. Below the information about the submission and the change request are listed.
-                You will also receive a receipt via email.
-            </p>
-            <p>Successful change request received from {{session_user_email}}</p>
-            <p>Datatype: {{datatype}}</p>
-            <p>Original Submission Date: {{submissiondate}}</p>
-            <p>Original Submission ID#: {{submissionid}}</p>
-            <p>Change Request ID#: {{change_id}}</p>
-            {% for key in login_fields %}
-            <p>{{key}}: {{login_fields[key]}}</p>
-            {% endfor %}
-        {%else%}
-            <p>We are sorry, something went wrong. SCCWRP staff has been notified.</p>
-        {%endif%}
-        <a class="btn btn-primary" role="button" href="{{request.script_root}}">Back to main page</a>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-{{ super() }}
-<script src="{{url_for('static', filename='login_form.js')}}"></script>
+<section class="receipt">
+    {% if success %}
+    <div class="receipt-mark" aria-hidden="true"><i class="icon icon-check"></i></div>
+    <span class="eyebrow">Pending staff review</span>
+    <h1>{{ 'Deletion' if request_type == 'delete' else 'Change' }} request received</h1>
+    <p>SCCWRP will review your request. No production data has changed. A receipt has been sent to {{session_user_email}}.</p>
+    <dl class="receipt-details">
+        <div><dt>Change request</dt><dd class="mono">{{change_id}}</dd></div>
+        <div><dt>Submission</dt><dd class="mono">{{submissionid}}</dd></div>
+        <div><dt>Datatype</dt><dd>{{datatype}}</dd></div>
+        <div><dt>Original submission date</dt><dd>{{submissiondate}}</dd></div>
+        {% for key, value in login_fields.items() %}<div><dt>{{key}}</dt><dd>{{value}}</dd></div>{% endfor %}
+    </dl>
+    {% else %}
+    <h1>Request not completed</h1>
+    <p>Contact SCCWRP with your change request ID for assistance.</p>
+    {% endif %}
+    <a class="btn btn-primary" href="{{url_for('login.index')}}"><i class="icon icon-arrow-left" aria-hidden="true"></i> Back to submissions</a>
+</section>
 {% endblock %}

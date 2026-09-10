@@ -1,321 +1,145 @@
-from flask import Blueprint, session, render_template, g, jsonify, current_app, redirect, url_for, request
-import pandas as pd
 import json
 import os
-from .utils.generic import change_history_update
-from .utils.mail import send_mail
 
+import pandas as pd
+from flask import Blueprint, session, render_template, g, jsonify, current_app, request
 from flask_login import login_required, current_user
+from sqlalchemy import text
+
+from .utils.mail import send_mail
+from .utils.request_artifacts import ledger_records
+from .utils.submissions import (
+    change_date, drop_snapshots, history_batches, read_state, request_directory,
+    request_lock, validate_table, write_state,
+)
+from .utils.workbooks import REPORT_INDEX, report_index, report_sheets
+
 
 finalize = Blueprint('finalize', __name__)
-@finalize.route("/final_submit", methods = ['GET', 'POST'])
+
+
+def validate_artifacts(change_id, tables):
+    directory = request_directory(change_id)
+    counts = {}
+    with pd.ExcelFile(directory / 'comparison.xlsx') as workbook:
+        index = pd.read_excel(workbook, sheet_name=REPORT_INDEX).to_dict('records')
+        if index != report_index(tables):
+            raise ValueError('The comparison workbook index does not match this request.')
+        for table, sheets in report_sheets(tables).items():
+            counts[table] = sum(len(pd.read_excel(workbook, sheet_name=sheets[kind]))
+                                for kind in ('Modified', 'Added', 'Deleted'))
+    archived = dict.fromkeys(tables, 0)
+    for record in ledger_records(change_id):
+        if record['tablename'] not in archived:
+            raise ValueError('The record archive contains an unexpected table.')
+        archived[record['tablename']] += 1
+        original = json.loads(record['original_record'])
+        modified = json.loads(record['modified_record'])
+        if not isinstance(original, dict) and original != []:
+            raise ValueError('Invalid original record archive.')
+        if not isinstance(modified, dict) and modified != []:
+            raise ValueError('Invalid modified record archive.')
+    if counts != archived or not sum(archived.values()):
+        raise ValueError('The record archive does not match the comparison workbook.')
+    if not (directory / 'request.sql').is_file():
+        raise ValueError('The staff SQL file is missing.')
+    return sum(archived.values())
+
+
+def save_history(eng, change_id, request_type, comment, expected_count):
+    history = validate_table(eng, os.environ['CHANGE_HISTORY_TABLE'])
+    statement = text(f'''
+        INSERT INTO {history} (
+            original_record, modified_record, change_id, submissionid, login_fields,
+            requesting_agency, requesting_person, change_date, change_comment,
+            change_processed, tablename, request_type
+        ) VALUES (
+            CAST(:original_record AS json), CAST(:modified_record AS json), :change_id, :submissionid,
+            CAST(:login_fields AS json), :requesting_agency, :requesting_person, :change_date,
+            :change_comment, :change_processed, :tablename, :request_type
+        )
+    ''')
+    common = {
+        'change_id': int(change_id), 'submissionid': int(session['submissionid']),
+        'login_fields': json.dumps(session['login_fields']),
+        'requesting_agency': current_user.organization, 'requesting_person': current_user.email,
+        'change_date': change_date(change_id), 'change_comment': comment,
+        'change_processed': 'No', 'request_type': request_type,
+    }
+    with eng.begin() as connection:
+        connection.execute(text('SELECT pg_advisory_xact_lock(:change_id)'), {'change_id': int(change_id)})
+        existing = connection.execute(text(
+            f'SELECT count(*) FROM {history} WHERE change_id = :change_id'
+        ), {'change_id': int(change_id)}).scalar()
+        if existing:
+            if existing != expected_count:
+                raise ValueError('The existing change history count differs from this request. Contact SCCWRP.')
+            return
+        records = (dict(common, **record) for record in ledger_records(change_id))
+        for batch in history_batches(records):
+            connection.execute(statement, batch)
+
+
+@finalize.route('/final_submit', methods=['POST'])
 @login_required
 def savechanges():
-    
-    if not session.get('sessionid'):
-        # likely they got to this page when they shouldnt have, for example, entering the url manually
-        return redirect(url_for('login.index'))
-    
-    eng = g.eng
-
-    sessionid = session.get('sessionid')
-    submissionid = session.get('submissionid')
-    login_info = json.dumps(session.get('login_fields')).replace("'","''")
-
-    # Both provided when the user signs in (auth.signin)
-    session_user_email = str(session.get('session_user_email'))
-    session_user_agency = str(session.get('session_user_agency'))
-
-    try:
-        print("getting the changed records")
-        changed = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # change to the variables above, to sessionid
-            sheet_name = 'Modified'
-        ).fillna('')
-        
-        print("getting the original records")
-        original = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # to sessionid
-            sheet_name = 'Original'
-        ).fillna('')
-        
-        print("getting the deleted records")
-        deleted = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # to sessionid
-            sheet_name = 'Deleted'
-        ).fillna('')
-        
-        print("getting the added records")
-        added = pd.read_excel(
-            f"{os.getcwd()}/export/highlightExcelFiles/comparison_{session['sessionid']}.xlsx", # to sessionid
-            sheet_name = 'Added'
-        ).fillna('')
-
-        for colname,datatype in changed.dtypes.to_dict().items():
-            if datatype == 'datetime64[ns]':
-                changed[colname] = changed[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
-            if colname == 'resqualcode':
-                changed[colname] = changed[colname].str.replace("'","''")
-        
-        for colname,datatype in original.dtypes.to_dict().items():
-            if datatype == 'datetime64[ns]':
-                original[colname] = original[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
-            if colname == 'resqualcode':
-                original[colname] = original[colname].str.replace("'","''")
-        
-        for colname,datatype in added.dtypes.to_dict().items():
-            if datatype == 'datetime64[ns]':
-                added[colname] = added[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
-            if colname == 'resqualcode':
-                added[colname] = added[colname].str.replace("'","''")
-        
-        for colname,datatype in deleted.dtypes.to_dict().items():
-            if datatype == 'datetime64[ns]':
-                deleted[colname] = deleted[colname].apply(lambda x: x.strftime("%Y-%m-%d %H:%M:%S") if pd.notnull(x) else '')
-            if colname == 'resqualcode':
-                deleted[colname] = deleted[colname].str.replace("'","''")
-
-
-        change_comment = session.pop('comment', '')
-        sanitized_change_comment = change_comment.replace("'","''").replace('\n','').replace('\r','')
-        
-
-        print("update the change history table one by one")
-        print("update the changed records")
-  
-        change_history_records = [
-            *changed.apply(
-                lambda row: change_history_update(row, original, sessionid, submissionid, login_info, session_user_agency, session_user_email, sanitized_change_comment),
-                axis = 1
-            ) \
-            .values,
-            *added.apply(
-                lambda row:
-                f"""
-                    (
-                        '[]',
-                        '{json.dumps(row.to_dict()).replace("'","''")}',
-                        {sessionid},
-                        {submissionid},
-                        '{login_info}',
-                        '{session_user_agency}',
-                        '{session_user_email}',
-                        '{pd.Timestamp(sessionid, unit = 's').strftime("%Y-%m-%d %H:%M:%S")}',
-                        '{sanitized_change_comment}',
-                        'No'
-                    )
-                """,
-                axis = 1
-            ).values,
-            *deleted.apply(
-                lambda row:
-                f"""
-                    (
-                        '{json.dumps(row.to_dict()).replace("'","''")}',
-                        '[]',
-                        {sessionid},
-                        {submissionid},
-                        '{login_info}',
-                        '{session_user_agency}',
-                        '{session_user_email}',
-                        '{pd.Timestamp(sessionid, unit = 's').strftime("%Y-%m-%d %H:%M:%S")}',
-                        '{sanitized_change_comment}',
-                        'No'
-                    )
-                """,
-                axis = 1
-            ).values
-        ]
-
-        change_history_sql = f"""
-            INSERT INTO {os.environ.get('CHANGE_HISTORY_TABLE')} (
-                original_record,
-                modified_record,
-                change_id,
-                submissionid,
-                login_fields,
-                requesting_agency,
-                requesting_person,
-                change_date,
-                change_comment,
-                change_processed
-            ) VALUES {', '.join(change_history_records)}
-        """
-        change_history_sql = change_history_sql.replace('%','%%')
-        print("change_history_sql")
-        print(change_history_sql)
-
-        assert sessionid not in pd.read_sql(f"SELECT DISTINCT change_id FROM {os.environ.get('CHANGE_HISTORY_TABLE')}", eng).change_id.values, \
-            f"Change ID {sessionid} already exists in the change history table"
-
-        eng.execute(change_history_sql)
-
-        with open(os.path.join(os.getcwd(), 'files', f"{session['sessionid']}.sql"), 'r') as sqlfile:
-            datatype = session.get('dtype')
-
-            sql = sqlfile.read()
-            sqlfile.close()
-
-            # email for user
-            send_mail(
-                current_app.send_from,
-                [
-                    *current_app.maintainers,
-                    str(session.get('session_user_email'))
-                ],
-                f'Data Change Request made for {current_app.config.get("projectname")}',
-                """A database change request was made from {} :\n\n\
-Datatype: {}\n\
-Original Submission Date: {}\n\
-Original Submission ID: {}\n\
-Change ID: {}\n\n\
-Change Comment: {}\n\n\n\
-SCCWRP Staff has been notified and they will let you know when the change has been finalized.
-\n\
-                """.format(
-                    str(session.get('session_user_email')),
-                    session.get('dtype'),
-                    session.get('submissiondate'),
-                    session.get('submissionid'),
-                    session.get('sessionid'),
-                    change_comment
-                ),
-                files = [session.get('comparison_path')],
-                server = current_app.config.get('MAIL_SERVER')
+    if not session.get('sessionid') or not session.get('tables'):
+        return jsonify(message='Your session expired. Select the submission again.'), 400
+    if current_user.email_confirmed != 'yes' or current_user.is_authorized != 'yes':
+        return jsonify(message='Your account is not approved for change requests.'), 403
+    organization_field = current_app.user_management['organization_login_field']
+    organization = session['login_fields'].get(organization_field, session['login_fields'].get('dataprovider'))
+    if current_user.is_admin != 'yes' and current_user.organization != organization:
+        return jsonify(message='You are not authorized for this submission.'), 403
+    change_id = session['sessionid']
+    with request_lock(change_id):
+        state = read_state(change_id)
+        if not state.get('ready'):
+            return jsonify(message='Compare a valid workbook or prepare a deletion request before finalizing.'), 400
+        if str(request.form.get('revision')) != str(state.get('revision')):
+            return jsonify(message='This report is out of date. Review the submission again.'), 409
+        comment = request.form.get('comment', '').strip()
+        if not comment:
+            return jsonify(message='A non-empty comment is required.'), 400
+        request_type = state['request_type']
+        if request_type == 'delete' and request.form.get('confirmation', '').strip() != str(session['submissionid']):
+            return jsonify(message='Type the exact submission ID to confirm deletion.'), 400
+        try:
+            count = validate_artifacts(change_id, session['tables'])
+            if not state.get('submitted'):
+                state['comment'] = comment
+                write_state(change_id, state)
+                save_history(g.eng, change_id, request_type, comment, count)
+                state['submitted'] = True
+                write_state(change_id, state)
+            directory = request_directory(change_id)
+            label = 'Submission Deletion Request' if request_type == 'delete' else 'Submission Edit Request'
+            body = (
+                f'{label} from {current_user.email}\n\nDatatype: {session["dtype"]}\n'
+                f'Original Submission Date: {session["submissiondate"]}\nSubmission ID: {session["submissionid"]}\n'
+                f'Change ID: {change_id}\nTables: {", ".join(session["tables"])}\n'
+                f'Affected records: {count}\nComment: {state["comment"]}\n\n'
+                'This records a request only. SCCWRP staff must review and run the SQL before production data changes.'
             )
-
-            # email for staff
-            send_mail(
-                current_app.send_from,
-                [
-                    *current_app.maintainers
-                ],
-                f'Data Change Request made for {current_app.config.get("projectname")}',
-                """A database change request was made from {} :\n\n\
-Datatype: {}\n\
-Original Submission Date: {}\n\
-Original Submission ID: {}\n\
-Change ID: {}\n\
-Change Comment: {}\n\n\n\
-For SCCWRP staff:\n\
-UPDATE RECORDS: (See attached SQL file)\n
-\n\nUPDATE CHANGE HISTORY TABLE:\n{}
-                """.format(
-                    str(session.get('session_user_email')),
-                    session.get('dtype'),
-                    session.get('submissiondate'),
-                    session.get('submissionid'),
-                    session.get('sessionid'),
-                    change_comment,
-                    #sql,
-                    f"UPDATE {os.environ.get('CHANGE_HISTORY_TABLE')} SET change_processed = 'Yes' WHERE change_id = {session['sessionid']} RETURNING *"
-                ),
-                files = [session.get('comparison_path'), session.get('sql_filepath')],
-                server = current_app.config.get('MAIL_SERVER')
-                # server = '192.168.1.18'
+            if not state.get('staff_notified'):
+                send_mail(current_app.send_from, current_app.maintainers,
+                          f'{label} for {current_app.config["projectname"]}', body,
+                          files=[str(directory / 'comparison.xlsx'), str(directory / 'request.sql')],
+                          server=current_app.config['MAIL_SERVER'])
+                state['staff_notified'] = True
+                write_state(change_id, state)
+            if not state.get('requester_notified'):
+                send_mail(current_app.send_from, [current_user.email],
+                          f'{label} for {current_app.config["projectname"]}', body,
+                          files=[str(directory / 'comparison.xlsx')], server=current_app.config['MAIL_SERVER'])
+                state['requester_notified'] = True
+                write_state(change_id, state)
+            drop_snapshots(g.eng, session['tables'], change_id)
+            return render_template(
+                'thankyou.jinja2', success=True, datatype=session['dtype'], session_user_email=current_user.email,
+                submissiondate=session['submissiondate'], submissionid=session['submissionid'],
+                login_fields=session['login_fields'], change_id=change_id, request_type=request_type,
             )
-
-        # At this point, if they got this far, we should clean up the "tmp" schema section
-        eng.execute(
-            f"""
-            DROP TABLE tmp.{session['origin_tablename']};
-            DROP TABLE tmp.{session['modified_tablename']};
-            """
-        )
-
-        
-        # Use session.pop to clear the specific session data so that they cant finalize their change twice
-        datatype = session.pop('dtype', None)
-        session_user_email = current_user.email
-        submissiondate = session.pop('submissiondate', None) 
-        submissionid = session.pop('submissionid', None) 
-        login_fields = session.pop('login_fields', None)
-        change_id = session.pop('sessionid', None)
-
-        return render_template(
-            "thankyou.jinja2",
-            success = True,
-            datatype = datatype,
-            session_user_email = session_user_email,
-            submissiondate = submissiondate,
-            submissionid = submissionid,
-            login_fields = login_fields,
-            change_id = change_id
-        )
-
-    except Exception as e:
-        print(e)
-        print(str(e)[:400])
-        send_mail(
-            current_app.send_from,
-            [
-                *current_app.maintainers
-            ],
-            'Data Change Request Error',
-            "{} (sessionid {}) came accross an error:\n\t{}\n\n\nSession Info:\n\t{}".format(
-                str(session.get('session_user_email')),
-                session.get('sessionid'),
-                str(e)[:500],
-                '\n\n\t'.join([f"{k}: {session.get(k)}" for k in session.keys()])
-            ),
-            files = [session.get('comparison_path')],
-            server = current_app.config.get('MAIL_SERVER')
-        )
-
-        # Use session.pop to clear the specific session data so that they cant finalize their change twice
-        session_user_email = current_user.email
-        datatype = session.pop('dtype', None)
-        submissiondate = session.pop('submissiondate', None)
-        submissionid = session.pop('submissionid', None)
-        login_fields = session.pop('login_fields', None)
-        change_id = session.pop('sessionid', None)
-
-        return render_template(
-            "thankyou.jinja2",
-            success = False,
-            datatype = datatype,
-            session_user_email = session_user_email,
-            submissiondate = submissiondate,
-            submissionid = submissionid,
-            login_fields = login_fields,
-            change_id = change_id
-        )
-
-
-@finalize.route("/savecomment", methods = ['POST'])
-def savecomment():
-
-    body = request.get_json()
-
-    comment = body.get('comment')
-
-    print("comment")
-    print(comment)
-
-    session['comment'] = comment
-    print("session.get('comment')")
-    print(session.get('comment'))
-
-    return jsonify({'code': 200, 'message': 'Comment saved in session successfully'})
-
-    
-
-
-@finalize.errorhandler(Exception)
-def default_error_handler(error):
-    print("Change Request application came across an error...")
-    #print(str(error).encode('utf-8'))
-    response = jsonify({'code': 500,'message': str(error)})
-    response.status_code = 500
-    # need to add code here to email SCCWRP staff about error
-    send_mail(
-        current_app.send_from,
-        [
-            *current_app.maintainers
-        ],
-        'Data Change Request Error',
-        f"{str(session.get('session_user_email'))} (sessionid {session.get('sessionid')}) came accross an error: {str(error)}",
-        files = [session.get('comparison_path')],
-        server = current_app.config.get('MAIL_SERVER')
-    )
-    return response
+        except Exception:
+            current_app.logger.exception('Finalization failed for change %s', change_id)
+            return jsonify(message='Finalization could not finish. Retry this request; any recorded history will not be duplicated. Contact SCCWRP if the problem persists.'), 500

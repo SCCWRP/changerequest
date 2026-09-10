@@ -1,6 +1,7 @@
 import pandas as pd
 
 def compare(df_origin, df_modified, pkey_columns, immutable_cols = [], special_numeric_columns = []):
+    immutable_cols = list(set(immutable_cols) | {column for column in df_origin.columns if column.startswith('login_')})
     print("comparison function")
     # merge the changed data with the original
     print("pkey_columns")

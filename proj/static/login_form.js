@@ -1,169 +1,65 @@
-/* Javascript code for the change request tool login form */
 {
-
-    Array.from(document.querySelectorAll('select.login-field-element[data-index="1"]')).forEach(async function(elem) {
-        let resp = await fetch(`/${$SCRIPT_ROOT}/login_values?field=${elem.getAttribute('name')}&dtype=${elem.dataset.dtype}`);
-        let data = await resp.json();
-        elem.innerHTML = `<option value="none" selected disabled hidden></option>`;;
-        data.data.forEach(d => {
-            elem.innerHTML += `
-                <option value="${d}">${d}</option>
-            `
-        })
-    })
-    
-
-    Array.from(document.querySelectorAll('.login-field-element[data-index][data-dtype]')).forEach(async function(elem, _, arr) {
-
-        elem.addEventListener('change', async function(e){
-            console.log(e)
-
-            const ind = Number(this.dataset.index);
-            const nextIndex = ind + 1;
-            const dtype = this.dataset.dtype;
-            const nextElement = document.querySelector(`.${dtype}-login-field-element[data-index="${nextIndex}"][data-dtype="${dtype}"]`);
-            console.log(`.${dtype}-login-field-element[data-index="${nextIndex}"][data-dtype="${dtype}"]`)
-            console.log("nextIndex")
-            console.log(nextIndex)
-            console.log("nextElement")
-            console.log(nextElement)
-            if (nextElement === null) {
-                let qryStringArgs = arr.filter(item => ((item.dataset.dtype === dtype))).map(
-                    el => `${el.getAttribute('name')}=${encodeURIComponent(el.value)}`
-                ).join('&');
-                
-                let url = `/${$SCRIPT_ROOT}/submissions?${qryStringArgs}&dtype=${dtype}`;
-
-                let resp = await fetch(url);
-                let data = await resp.json();
-                const submissions = data.submissions;
-                console.log(submissions);
-
-                const submissionIdSelect = document.getElementById(`${dtype}-submissionid-select`);
-
-                submissionIdSelect.innerHTML = '';
-                submissions.forEach(s => {
-                    submissionIdSelect.innerHTML += `<option value="${s.submissionid}"> SubmissionID: ${s.submissionid} (Submitted on ${s.submissiondate})</option>`
-                })
-
-                return;
-            }
-            const field = nextElement.getAttribute("name");
-    
-            console.log(`.${dtype}-login-field-element[data-index="${nextIndex}"][data-dtype="${dtype}"]`)
-            console.log(nextElement)
-    
-            // clear HTML of next items
-            arr.filter(item => (Number(item.dataset.index) > ind) & (item.dataset.dtype === dtype)).forEach(
-                el => el.innerHTML = `<option value="none" selected disabled hidden></option>`
-            );
-            
-    
-            let url = [
-                `/${$SCRIPT_ROOT}/login_values?field=${field}`,
-                `dtype=${dtype}`,
-                arr.filter(item => (Number(item.dataset.index) < (nextIndex)) & (item.dataset.dtype === dtype))
-                    .map(el => `${el.getAttribute('name')}=${encodeURIComponent(el.value)}`)
-                    .join('&')
-            ];
-    
-            url = url.join('&');
-            console.log('url');
-            console.log(url);
-    
-            
-            let resp = await fetch(url);
-            let data = await resp.json();
-            
-            if (data.data.length === 0) {
-                alert("Nothing found")
-            }
-
-            // if nextElement is a select dropdown item ...
-            if (nextElement.tagName === 'SELECT') {    
-                nextElement.innerHTML = `<option value="none" selected disabled hidden></option>`;
-                data.data.forEach(d => {
-                    nextElement.innerHTML += `
-                        <option value="${d}">${d}</option>
-                    `
-                });
-            } 
-        })
-    })
-
-    Array.from(document.querySelectorAll('form[data-dtype]')).forEach(f => {
-        f.addEventListener('submit',  async function(e) {
-            e.preventDefault();
-            const dtype = f.dataset.dtype;
-            
-            const formData = new FormData();
-            Array.from(document.querySelectorAll(`.${dtype}-login-field-element`)).forEach(s => {
-                formData.append(s.getAttribute('name'), s.value);
-            })
-            formData.append('dtype',dtype)
-            
-            
-            document.getElementById('overlay').style.display = 'block';
-            let result = await fetch(
-                `/${$SCRIPT_ROOT}/post-session-data`,
-                {
-                    method: 'post',
-                    body: formData
-                }
-            );
-            let data = await result.json();
-            console.log(data);
-
-            if (String(data.message).toLowerCase() === 'success') {
-                window.location = `/${$SCRIPT_ROOT}/edit-submission`;
+    const root = `/${$SCRIPT_ROOT}`.replace(/\/$/, '');
+    const setOptions = (element, values) => {
+        element.replaceChildren(new Option('', '', true, true));
+        element.options[0].disabled = true;
+        values.forEach(value => element.add(new Option(value, value)));
+    };
+    document.querySelectorAll('form[data-dtype]').forEach(form => {
+        const dtype = form.dataset.dtype;
+        const fields = Array.from(form.querySelectorAll('[data-index]'));
+        const submission = form.querySelector('[name="submissionid"]');
+        const message = document.getElementById(`${dtype}-submission-message`);
+        async function loadField(position) {
+            const params = new URLSearchParams({dtype});
+            fields.slice(0, position).forEach(field => params.set(field.name, field.value));
+            if (position < fields.length) params.set('field', fields[position].name);
+            const response = await fetch(`${root}/${position < fields.length ? 'login_values' : 'submissions'}?${params}`);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.user_error_msg || data.message || 'Submission search failed.');
+            if (position < fields.length) {
+                setOptions(fields[position], data.data);
+                if (!data.data.length) message.textContent = 'No completed, non-deleted submissions were found for this datatype and login selection.';
             } else {
-                if (data.user_error_msg){
-                    alert(data.user_error_msg);
-                    location.reload();
-                } else {
-                    document.getElementById('overlay-text-container').innerText = "Unexpected error occurred";
-                }
-                console.error('something bad happened');
+                submission.replaceChildren();
+                data.submissions.forEach(item => submission.add(new Option(
+                    `Submission ${item.submissionid} (Submitted on ${item.submissiondate})`, item.submissionid
+                )));
+                message.textContent = data.message || '';
             }
-
-        })
-    })
-
-   
-
-    Array.from(document.querySelectorAll('.btn-submission-preview')).forEach(btn => {
-        btn.addEventListener('click', async function(e) {
-            e.preventDefault();
-            const a = document.createElement('a')
-
-            submissionid = document.getElementById(`${this.dataset.dtype}-submissionid-select`).value;
-            tablename = document.getElementById(`${this.dataset.dtype}-tablename-select`).value;
-            
-            if (!submissionid) {
-                alert("No submissionid selected");
+        }
+        fields.forEach((field, position) => field.addEventListener('change', async () => {
+            fields.slice(position + 1).forEach(element => setOptions(element, []));
+            submission.replaceChildren();
+            message.textContent = '';
+            try { await loadField(position + 1); } catch (error) { message.textContent = error.message; }
+        }));
+        loadField(0).catch(error => { message.textContent = error.message; });
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!submission.value || fields.some(field => !field.value)) {
+                message.textContent = 'Select all login fields and a submission ID.';
                 return;
             }
-            if (!tablename) {
-                alert("No tablename selected");
-                return;
+            const action = event.submitter?.value || 'edit';
+            const body = new FormData(form);
+            body.set('dtype', dtype);
+            const overlay = document.getElementById('overlay');
+            overlay.style.display = 'block';
+            try {
+                const response = await fetch(`${root}/post-session-data`, {method: 'POST', body});
+                const data = await response.json();
+                if (!response.ok || data.message !== 'Success') throw new Error(data.user_error_msg || 'Submission setup failed.');
+                window.location = `${root}/edit-submission?action=${action}`;
+            } catch (error) {
+                message.textContent = error.message;
+            } finally {
+                overlay.style.display = 'none';
             }
-
-            a.href = `/changerequest/submission-download?submissionid=${submissionid}&tablename=${tablename}`;
-            a.download = `${tablename}_${submissionid}.xlsx`
-            document.body.appendChild(a)
-            a.click()
-            document.body.removeChild(a)
-
-        })
-    })
-
-    Array.from(document.getElementsByClassName('infotab-header')).forEach((item, i, arr) => {
-        item.addEventListener('click', function(e) {
-            arr.forEach(x => x.classList.remove('active'));
-            item.classList.add('active');
-            Array.from(document.querySelectorAll('.form-container')).forEach(div => {
-                div.dataset.dtype === item.dataset.dtype ? div.classList.remove('hidden') : div.classList.add('hidden') ;
-            })
-        })
-    })
+        });
+    });
+    document.querySelectorAll('.infotab-header').forEach(item => item.addEventListener('click', () => {
+        document.querySelectorAll('.infotab-header').forEach(tab => tab.classList.toggle('active', tab === item));
+        document.querySelectorAll('.form-container').forEach(panel => panel.classList.toggle('hidden', panel.dataset.dtype !== item.dataset.dtype));
+    }));
 }

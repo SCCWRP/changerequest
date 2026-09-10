@@ -1,4 +1,5 @@
 import pandas as pd
+from html import escape
 
 def htmltable(df, _id = None, cssclass = None, enumeraterows = True, editable = True):
     '''
@@ -68,7 +69,7 @@ def htmltable(df, _id = None, cssclass = None, enumeraterows = True, editable = 
                                     #'<td class="colname-{}">{}</td>'.format(
                                     '<td contenteditable="true" class="colname-{}">{}</td>'.format(
                                         cell.get('column_name'), 
-                                        cell.get('column_value') if not pd.isnull(cell.get('column_value')) else ''
+                                        escape(str(cell.get('column_value'))) if not pd.isnull(cell.get('column_value')) else ''
                                     ) 
                                     
                                     if 
@@ -77,7 +78,7 @@ def htmltable(df, _id = None, cssclass = None, enumeraterows = True, editable = 
                                         '<td class="colname-{}">{}</td>' \
                                         .format(
                                             cell.get('column_name'), 
-                                            cell.get('column_value') if not pd.isnull(cell.get('column_value')) else ''
+                                            escape(str(cell.get('column_value'))) if not pd.isnull(cell.get('column_value')) else ''
                                         )
                                     
                                     , row

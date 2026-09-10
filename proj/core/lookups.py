@@ -47,7 +47,7 @@ def checkLookUpLists(dataframe, tablename, eng, dtype, *args, output = None, **k
         lambda x: 
         checkData(
             dataframe = dataframe,
-            tablename = session.get('tablename'),
+            tablename = tablename,
             # dtype = dtype,
             badrows = [
                 {

@@ -53,16 +53,7 @@
                                         </div>
                                     </div>
                                     
-                                    <div class="input-group form-group">
-                                        <div class = "select-form-container">
-                                            <label for="tablename">Table you will be editing:</label>
-                                            <select name="tablename" id="{{dtype}}-tablename-select" class="login-field-select {{dtype}}-login-field-select {{dtype}}-login-field-element" data-dtype="{{dtype}}">
-                                                {% for tbl in dtypes[dtype]['tables']%}
-                                                <option value="{{tbl}}">{{tbl}}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                    </div>
+                                    <p id="{{dtype}}-submission-message" role="status"></p>
 
                                     
                                     
@@ -71,7 +62,8 @@
                                     </div> -->
 
                                     <div class="form-group">
-                                        <button data-dtype="{{dtype}}" id="{{dtype}}-form-submit" class="btn login_btn">Go</button>
+                                        <button type="submit" data-dtype="{{dtype}}" id="{{dtype}}-form-submit" class="btn login_btn" value="edit">Edit Submission</button>
+                                        <button type="submit" class="btn btn-outline-danger" value="delete">Request Submission Deletion</button>
                                     </div>
                                 </form>
                             </div>

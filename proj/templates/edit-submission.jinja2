@@ -28,6 +28,20 @@
 
                 </div>
                 <br>
+                <h4>Submission {{session['submissionid']}}</h4>
+                {% if pending_deletion %}
+                <p class="alert alert-warning">This submission already has an unprocessed deletion request. Further edit requests are still allowed.</p>
+                {% endif %}
+                <div id="omitted-sheets-notice" class="alert alert-warning alert-dismissible" role="alert">
+                    Omitted sheets are left unchanged. Empty sheets are rejected; they never delete a whole table.
+                    <button type="button" id="dismiss-omitted-sheets-notice" class="close" aria-label="Dismiss omitted sheets notice" title="Dismiss notice">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% if deletion_mode %}
+                <button type="button" id="request-deletion" class="btn btn-outline-danger" data-initial="{{ 'true' if deletion_mode else 'false' }}">Request Submission Deletion</button>
+                {% endif %}
+                <p id="request-status" role="status"></p>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card mb-4 box shadow">
@@ -82,17 +96,17 @@
                                 </p>
                                 <p>
                                     This application runs a comparison between your previous submission, and the edited excel file which you upload, 
-                                    and then makes the requested modifications to the submission.
+                                    and then records your request for SCCWRP staff to review and apply.
                                 </p>
                                 <p>
                                     <strong>Be advised</strong>, <em><u>if you alter a column which is part of the table's primary key</u></em>, 
                                     the app will interpret the change as one record being replaced by another, since the primary key columns are what is used to uniquely identify a record.
                                     So if you altered a primary key column, the changes will show up in the "added records" and "deleted records" tabs.
-                                    The primary key for the current table that you are editing is:
+                                    The primary keys for this submission are:
                                 </p>
                                 <p>
-                                {% for col in pkey_cols %}
-                                    <strong>{{col}}</strong>{% if not loop.last %}, {% endif %}
+                                {% for table, columns in pkeys.items() %}
+                                    <strong>{{table}}</strong>: {{columns|join(', ')}}<br>
                                 {% endfor %}
                                 </p>
                             </div>
@@ -101,6 +115,11 @@
                     </div>
                 </div>
                 <div id="change-report-container" class="hidden">
+                    <label for="report-table-selector">Table</label>
+                    <select id="report-table-selector" class="form-control"></select>
+                    <p id="report-primary-key"></p>
+                    <p id="report-counts"></p>
+                    <div id="report-warnings" role="status"></div>
                     <div class="row">
                         <div id="datatable-tabs">
                             <button type="button" class="btn btn-primary datatable-tab-button active" data-target="changed-records-datatable-container">Changed Records</button>
@@ -141,9 +160,12 @@
                     <form 
                         id="final-submit-form"
                         action="{{url_for('finalize.savechanges')}}" 
-                        method="GET" 
+                        method="POST"
                         style="float: right;" 
                     >
+                        <input type="hidden" name="comment" id="final-comment">
+                        <input type="hidden" name="confirmation" id="final-confirmation">
+                        <input type="hidden" name="revision" id="final-revision">
                         <input id="finalize-submission" type="submit" value="Finalize Change Request" class="hidden post-change-option clean-data-post-change-option">
                     </form>
                     <form action="{{url_for('export.download_change_history')}}" method="GET" target = "_blank" style="float: right;">
@@ -168,6 +190,7 @@
 </div>
 {% endblock %}
 {% block scripts %}
+    <script id="submission-context" type="application/json">{{ {'submissionid': session['submissionid'], 'pkeys': pkeys}|tojson }}</script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">

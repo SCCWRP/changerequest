@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+from sqlalchemy import text
 
 # This function allows you to put in a table name and get back the primary key fields of the table
 def get_primary_key(table, eng):
@@ -27,10 +28,12 @@ def get_primary_key(table, eng):
             AND c.column_name = kcu.column_name
         WHERE 
             tc.constraint_type = 'PRIMARY KEY'
-            AND tc.table_name = '{table}';
+            AND tc.table_schema = 'sde'
+            AND tc.table_name = :table
+        ORDER BY kcu.ordinal_position;
     '''
 
-    return pd.read_sql(sql, eng).column_name.tolist()
+    return pd.read_sql(text(sql), eng, params={'table': table}).column_name.tolist()
 
 
     

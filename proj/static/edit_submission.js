@@ -1,156 +1,131 @@
-import { addTips } from "./tooltip.js";
-import { saveChanges } from "./save.js";
+import { addTips } from './tooltip.js';
 
-(function(){
-    
-    const uploadForm = document.querySelector("#upload-form");
-    
-    
-    /* The routine that gets executed when the file is submitted */
-    uploadForm.addEventListener("submit", async function(event){
-        event.preventDefault();
-        event.stopPropagation();
-    
-        // show loader gif
-        const loadingModal = document.getElementById('loading-modal');
-        loadingModal.style.display = 'block';
-    
-        /* unhide the datatable containers */
-        Array.prototype.slice.call(document.querySelectorAll(".datatable-container")).map(
-            c => c.classList.remove("hidden")
-        );
-        document.getElementById('change-report-container').classList.remove('hidden');
-    
-        document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loader.gif">`;
-    
-        const dropped_files = document.querySelector('[type=file]').files;
-        const formData = new FormData();
-        for(let i = 0; i < dropped_files.length; ++i){
-            formData.append('files[]', dropped_files[i]);
-        }
-    
-        try {
-            let result = await fetch(`/${$SCRIPT_ROOT}/compare`, {
-                method: 'POST',
-                body: formData
+export const root = `/${$SCRIPT_ROOT}`.replace(/\/$/, '');
+export const context = JSON.parse(document.getElementById('submission-context').textContent);
+export let report = null;
+let selectedTable = null;
+let dirty = false;
+const selector = document.getElementById('report-table-selector');
+const status = document.getElementById('request-status');
+
+function captureTable() {
+    if (report && selectedTable) {
+        report.tables[selectedTable].tbl = document.getElementById('changed-records-display-inner-container').innerHTML;
+    }
+}
+
+export function invalidateReport() {
+    dirty = true;
+    document.querySelectorAll('.clean-data-post-change-option').forEach(button => button.classList.add('hidden'));
+}
+
+export function browserEdits() {
+    captureTable();
+    const tables = {};
+    Object.entries(report.tables).forEach(([table, data]) => {
+        const container = document.createElement('div');
+        container.innerHTML = data.tbl;
+        tables[table] = Array.from(container.querySelectorAll('tbody tr')).map((row, position) => {
+            const values = {};
+            row.querySelectorAll('td').forEach(cell => {
+                const columnClass = Array.from(cell.classList).find(name => name.startsWith('colname-'));
+                values[columnClass.slice('colname-'.length)] = cell.textContent;
             });
-    
-            if (!result.ok) {
-                throw new Error(`Server error: ${result.statusText}`);
-            }
-    
-            let data = await result.json();
-    
-            // Assuming formatDataTable and tableNavigation exist
-            document.querySelector("#changed-records-display-inner-container").innerHTML = data.tbl;
-            document.querySelector("#added-records-display-inner-container").innerHTML = data.addtbl;
-            document.querySelector("#deleted-records-display-inner-container").innerHTML = data.deltbl;
-    
-            formatDataTable(data);
-            tableNavigation();
-    
-            document.getElementById('change-report-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    
-            // handle buttons visibility based on error presence
-            Array.prototype.slice.call(document.querySelectorAll(".post-change-option")).map((b) => {
-                if (!data.errors || data.errors.length === 0) {
-                    b.classList.remove("hidden");
-                } else {
-                    b.classList.contains('clean-data-post-change-option') ? b.classList.add("hidden") : b.classList.remove("hidden");
-                }
-            });
-    
-            addTips();
-    
-        } catch (error) {
-            console.error("An error occurred:", error);
-            alert("An error occurred during the file upload process, and SCCWRP Staff has been notified. Please try again.");
-        } finally {
-            // hide loader gif
-            loadingModal.style.display = 'none';
-        }
+            return {row: data.edit_rows[position], values};
+        });
     });
-    
+    return {tables, revision: report.revision};
+}
 
-    // the edit submission page should warn them they might have unsaved changes
-    window.onbeforeunload = () => {return true}
-
-    // now add the listener for the save changes button, now that they have made an initial change request with the excel file
-    document.getElementById('save-change-btn').addEventListener('click', saveChanges)
-    Array.from(document.getElementsByClassName('editable-cell')).forEach(c => {
-        c.addEventListener()
-    })
-
-})()
-
-
-// (function(){
-
-// })()
-
-
-window.addEventListener("load", function(){
-
-    // select the uploadForm that we are going to be submitting the user's file with
-    const uploadForm = document.querySelector("#upload-form");
-
-    // Drag and Drop listener
-    // Prevent defaults on drag events
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        document.addEventListener(eventName, preventDefaults, false);
+function showTable() {
+    const data = report.tables[selectedTable];
+    document.getElementById('changed-records-display-inner-container').innerHTML = data.tbl;
+    document.getElementById('added-records-display-inner-container').innerHTML = data.addtbl;
+    document.getElementById('deleted-records-display-inner-container').innerHTML = data.deltbl;
+    document.getElementById('report-primary-key').textContent = `Primary key: ${context.pkeys[selectedTable].join(', ')}`;
+    document.getElementById('report-counts').textContent = `${data.counts.modified} changed, ${data.counts.added} added, ${data.counts.deleted} deleted`;
+    document.getElementById('report-warnings').textContent = [
+        ...data.errors.map(error => error.error_message), ...data.warnings.map(warning => warning.error_message)
+    ].join('\n');
+    formatDataTable(report, selectedTable);
+    tableNavigation();
+    addTips();
+    document.querySelectorAll('#changed-records-display-inner-container [contenteditable]').forEach(cell => {
+        cell.addEventListener('input', () => {
+            invalidateReport();
+            status.textContent = 'Unsaved browser corrections.';
+        });
     });
+    if (report.request_type === 'delete') document.querySelector('[data-target="deleted-records-datatable-container"]').click();
+}
 
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
+export function renderReport(data) {
+    report = data;
+    dirty = false;
+    selector.replaceChildren();
+    Object.keys(data.tables).forEach(table => selector.add(new Option(table, table)));
+    selectedTable = data.tables[selectedTable] ? selectedTable : selector.options[0].value;
+    selector.value = selectedTable;
+    status.textContent = [data.message, ...(data.warnings || [])].filter(Boolean).join('\n');
+    document.getElementById('change-report-container').classList.remove('hidden');
+    document.querySelectorAll('.clean-data-post-change-option').forEach(button => button.classList.toggle('hidden', !data.ready));
+    document.getElementById('save-change-btn').classList.toggle('hidden', data.request_type === 'delete');
+    document.getElementById('finalize-submission').value = data.request_type === 'delete' ? 'Finalize Deletion Request' : 'Finalize Change Request';
+    document.getElementById('final-revision').value = data.revision;
+    showTable();
+}
+
+selector.addEventListener('change', () => {
+    captureTable();
+    selectedTable = selector.value;
+    showTable();
+});
+
+export async function sendComparison(url, options) {
+    const loader = document.getElementById('loading-modal');
+    loader.style.display = 'block';
+    invalidateReport();
+    try {
+        const response = await fetch(url, options);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'The request failed.');
+        renderReport(data);
+        document.getElementById('change-report-container').scrollIntoView({behavior: 'smooth', block: 'start'});
+    } catch (error) {
+        status.textContent = error.message;
+        alert(error.message);
+    } finally {
+        loader.style.display = 'none';
     }
-    
-    // Highlight drop area when item is dragged over it
-    ['dragenter', 'dragover'].forEach(eventName => {
-        document.addEventListener(eventName, highlight, false);
-    });
+}
 
-    ['dragleave', 'drop'].forEach(eventName => {
-        document.addEventListener(eventName, unhighlight, false);
-    });
+const uploadForm = document.getElementById('upload-form');
+uploadForm.addEventListener('submit', event => {
+    event.preventDefault();
+    sendComparison(`${root}/compare`, {method: 'POST', body: new FormData(uploadForm)});
+});
 
-    function highlight(e) {
-        document.body.style.backgroundColor = '#cccccc'; // Use your own highlight style
+document.getElementById('dismiss-omitted-sheets-notice').addEventListener('click', () => {
+    document.getElementById('omitted-sheets-notice').remove();
+});
+
+const deletionButton = document.getElementById('request-deletion');
+deletionButton?.addEventListener('click', () => {
+    if (confirm(`Prepare a deletion request for ALL records in submission ${context.submissionid}? This replaces the current comparison.`)) {
+        sendComparison(`${root}/request-deletion`, {method: 'POST'});
     }
+});
 
-    function unhighlight(e) {
-        document.body.style.backgroundColor = ''; // Reset the highlight style
-    }
-
-    // Handle dropped files
-    document.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
-        let files = e.dataTransfer.files;
-
-        // Get the file input and set its files property
-        let fileInput = document.querySelector('input#file');
-        fileInput.files = files;
-
-        // Submit the form
-        // uploadForm.submit();
-        const event = new Event('submit', {cancelable: true});
-        uploadForm.dispatchEvent(event);
-
-    }
-})
-
-
-
-// /* Saving changes when they edit in the browser */
-// (function(){
-    
-// })()
-
-
-
-// /* global change */
-// (function(){
-
-// })()
-
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => document.addEventListener(name, event => {
+    event.preventDefault();
+    event.stopPropagation();
+    document.body.style.backgroundColor = ['dragenter', 'dragover'].includes(name) ? '#cccccc' : '';
+}));
+document.addEventListener('drop', event => {
+    document.getElementById('file').files = event.dataTransfer.files;
+    uploadForm.dispatchEvent(new Event('submit', {cancelable: true}));
+});
+window.onbeforeunload = () => dirty || report ? true : undefined;
+if (deletionButton?.dataset.initial === 'true') {
+    deletionButton.click();
+}

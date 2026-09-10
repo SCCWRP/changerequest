@@ -1,11 +1,14 @@
-function formatDataTable (data) {
+function formatDataTable (report, tablename) {
+    const data = report.tables[tablename];
+    const container = document.getElementById('changed-records-display-inner-container');
     data.accepted_changes.map(kv => {
         // kv signifying that each element of the array is a key value pair
         
         /* We added one in the changed indices variable, for purposes of highlighting the excel file.
         Here we make it go back to what it "should" be */
         console.log(`tr#objectid-${Number(kv["objectid"])} td.colname-${kv["colname"]}`);
-        let cell = document.querySelector(`tr#objectid-${Number(kv["objectid"])} td.colname-${kv["colname"]}`);
+        let cell = container.querySelector(`tr#objectid-${Number(kv["objectid"])} td.colname-${kv["colname"]}`);
+        if (!cell) return;
         cell.classList.add("accepted-change");
         cell.classList.add("changed-cell");
         cell.setAttribute("data-toggle","popover");
@@ -21,8 +24,10 @@ function formatDataTable (data) {
         /* We added one in the changed indices variable, for purposes of highlighting the excel file.
         Here we make it go back to what it "should" be */
         console.log(`tr#objectid-${Number(kv["objectid"])} td.colname-${kv["colname"]}`);
-        document.querySelector(`tr#objectid-${Number(kv["objectid"])} td.colname-${kv["colname"]}`).classList.add("rejected-change");
-        document.querySelector(`tr#objectid-${Number(kv["objectid"])} td.colname-${kv["colname"]}`).classList.add("changed-cell");
+        kv.colname.split(',').forEach(column => {
+            const cell = container.querySelector(`tr#objectid-${Number(kv.objectid)} td.colname-${column.trim()}`);
+            if (cell) cell.classList.add('rejected-change', 'changed-cell');
+        });
     })
     data.errors.map(error => {
         /* each element of the array is an object 
@@ -32,12 +37,15 @@ function formatDataTable (data) {
         // Here is where we add the data-toggle and title attributes for the tooltip
         error.rows.map(row => {    
             console.log(`tr#objectid-${Number(row.objectid)} td.colname-${error.columns}`);
-            let cell = document.querySelector(`tr#objectid-${Number(row.objectid)} td.colname-${error.columns}`);
+            error.columns.split(',').forEach(column => {
+            let cell = container.querySelector(`tr#objectid-${Number(row.objectid)} td.colname-${column.trim()}`);
+            if (!cell) return;
             cell.setAttribute("data-toggle","popover");
             cell.setAttribute("data-content",`${error.error_message}`);
             cell.setAttribute("title","");
             cell.setAttribute("data-original-title",`${error.error_type}`);
             cell.setAttribute("data-placement","top");
+            });
         })
     })
 }
@@ -169,7 +177,7 @@ function tableNavigation(){
 
     // Add click event listener to each tab button
     tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.onclick = function() {
             // Remove 'active' class from all tab buttons and datatable containers
             document.querySelectorAll('.datatable-tab-button, .datatable-container').forEach(el => {
                 el.classList.remove('active');
@@ -183,7 +191,7 @@ function tableNavigation(){
 
             // Add 'active' class to target datatable container
             document.getElementById(target).classList.add('active');
-        });
+        };
     });
 
     // Initialize the first tab as active

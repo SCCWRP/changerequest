@@ -6,7 +6,7 @@
     <div class="container">
         {%if success%}
             <p>
-                Thank you! SCCWRP has received your request to change your submission. Below the information about the submission and the change request are listed.
+                SCCWRP has received your submission {{ 'deletion' if request_type == 'delete' else 'edit' }} request. No production data has been changed by this app. Below the information about the submission and the change request are listed.
                 You will also receive a receipt via email.
             </p>
             <p>Successful change request received from {{session_user_email}}</p>

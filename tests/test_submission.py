@@ -1,5 +1,6 @@
 import importlib.util
 import ast
+from email import message_from_string
 from contextlib import redirect_stdout
 from datetime import datetime, date
 from decimal import Decimal
@@ -42,6 +43,29 @@ def load_functions(relative_path, namespace):
 artifacts = load_functions('proj/utils/request_artifacts.py', {
     'pd': pd, 'adapt': adapt, 'json': json, 'datetime': datetime, 'date': date, 'Decimal': Decimal,
 })
+
+
+class EmailAttachmentTests(unittest.TestCase):
+    def test_submission_suffix_changes_attachment_names_not_contents_or_paths(self):
+        mail = load_helper('mail')
+        with tempfile.TemporaryDirectory() as temporary:
+            workbook = Path(temporary) / 'comparison.xlsx'
+            script = Path(temporary) / 'request.sql'
+            workbook.write_bytes(b'offline workbook fixture')
+            script.write_text('BEGIN;\nCOMMIT;\n')
+            for suffix, expected in (
+                ('_1780430796', ['comparison_1780430796.xlsx', 'request_1780430796.sql']),
+                ('', ['comparison.xlsx', 'request.sql']),
+            ):
+                with self.subTest(suffix=suffix), patch.object(mail.smtplib, 'SMTP') as smtp:
+                    mail.send_mail('sender@example.org', ['recipient@example.org'], 'Offline test',
+                                   files=[str(workbook), str(script)], attachment_suffix=suffix)
+                    message = message_from_string(smtp.return_value.sendmail.call_args[0][2])
+                    attachments = [part for part in message.walk() if part.get_content_disposition() == 'attachment']
+                    self.assertEqual([part.get_filename() for part in attachments], expected)
+                    self.assertEqual(attachments[0].get_payload(decode=True), workbook.read_bytes())
+                    self.assertEqual(attachments[1].get_payload(decode=True), script.read_bytes())
+                    self.assertEqual(sorted(path.name for path in Path(temporary).iterdir()), ['comparison.xlsx', 'request.sql'])
 
 
 class Frame:

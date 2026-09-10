@@ -125,13 +125,14 @@ def savechanges():
                 send_mail(current_app.send_from, current_app.maintainers,
                           f'{label} for {current_app.config["projectname"]}', body,
                           files=[str(directory / 'comparison.xlsx'), str(directory / 'request.sql')],
-                          server=current_app.config['MAIL_SERVER'])
+                          server=current_app.config['MAIL_SERVER'], attachment_suffix=f'_{session["submissionid"]}')
                 state['staff_notified'] = True
                 write_state(change_id, state)
             if not state.get('requester_notified'):
                 send_mail(current_app.send_from, [current_user.email],
                           f'{label} for {current_app.config["projectname"]}', body,
-                          files=[str(directory / 'comparison.xlsx')], server=current_app.config['MAIL_SERVER'])
+                          files=[str(directory / 'comparison.xlsx')], server=current_app.config['MAIL_SERVER'],
+                          attachment_suffix=f'_{session["submissionid"]}')
                 state['requester_notified'] = True
                 write_state(change_id, state)
             drop_snapshots(g.eng, session['tables'], change_id)

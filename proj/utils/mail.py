@@ -7,7 +7,7 @@ from email.utils import COMMASPACE, formatdate
 from email import encoders
 
 # Function to be used later in sending email
-def send_mail(send_from, send_to, subject, text = '', html = None, files=None, server='localhost'):
+def send_mail(send_from, send_to, subject, text = '', html = None, files=None, server='localhost', attachment_suffix=''):
     msg = MIMEMultipart()
     
     msg['From'] = send_from
@@ -34,7 +34,9 @@ def send_mail(send_from, send_to, subject, text = '', html = None, files=None, s
                     p.set_payload((attachment).read())
                     encoders.encode_base64(p)
                     
-                p.add_header('Content-Disposition',f"attachment; filename={f.split('/')[-1]}")
+                basename, extension = os.path.splitext(os.path.basename(f))
+                filename = f'{basename}{attachment_suffix}{extension}'
+                p.add_header('Content-Disposition', 'attachment', filename=filename)
                 msg.attach(p)
             else:
                 print(f"filename {f} not found")

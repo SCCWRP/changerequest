@@ -146,7 +146,7 @@ app.json_encoder = NpEncoder
 CUSTOM_CHECKS_DIRECTORY = os.path.join(os.getcwd(), 'proj','custom')
 app.dtypes = CUSTOM_CONFIG.get('dtypes')
 for dtyp in app.dtypes.keys():
-    for tbl, func_name in app.dtypes.get(dtyp).get("custom_checks_functions").items():
+    for tbl, func_name in app.dtypes.get(dtyp).get("custom_checks_functions", {}).items():
         add_custom_checks_function(CUSTOM_CHECKS_DIRECTORY, func_name)
 
 # fix the imports in the custom file

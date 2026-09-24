@@ -66,6 +66,8 @@ Each deployment supplies its own untracked `proj/config/config.json` (start from
   `login_<fieldname>` column. A datatype whose organization is entered through a
   different login field (for example `dataprovider`) sets `organization_login_field`
   to override `user_management.organization_login_field`.
+- `custom_checks_functions` maps tables to custom check functions. Tables without an
+  entry get core checks only.
 - Configured table names must be 31 characters or fewer, because the submission
   workbook uses them as sheet names.
 

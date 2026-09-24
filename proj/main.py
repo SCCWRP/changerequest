@@ -38,10 +38,13 @@ def check_submission(frames):
             store_candidate(g.eng, table, session['sessionid'], frame)
             frame = read_snapshot(g.eng, table, session['sessionid'], list(frame.columns), kind='mod')
             frames[table] = frame
-            function_name = current_app.dtypes[session['dtype']]['custom_checks_functions'][table]
-            output = getattr(custom_checks, function_name)(deepcopy(frame), table)
-            errors.extend(error for error in output['errors'] if error)
-            warnings.extend(warning for warning in output['warnings'] if warning)
+            function_name = current_app.dtypes[session['dtype']].get('custom_checks_functions', {}).get(table)
+            if function_name:
+                output = getattr(custom_checks, function_name)(deepcopy(frame), table)
+                errors.extend(error for error in output['errors'] if error)
+                warnings.extend(warning for warning in output['warnings'] if warning)
+            else:
+                current_app.logger.warning('No custom checks function is configured for %s', table)
         results[table] = {'errors': errors, 'warnings': warnings}
     return results
 

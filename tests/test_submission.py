@@ -2,6 +2,7 @@ import importlib.util
 import ast
 from email import message_from_string
 from contextlib import redirect_stdout
+from copy import deepcopy
 from datetime import datetime, date
 from decimal import Decimal
 import io
@@ -441,6 +442,28 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(helpers.organization_login_field({}, user_management), 'agency')
         self.assertEqual(helpers.organization_login_field({'organization_login_field': 'dataprovider'}, user_management), 'dataprovider')
 
+
+class CustomCheckTests(unittest.TestCase):
+    def test_tables_without_custom_checks_get_core_checks_only(self):
+        frame = pd.DataFrame([{'objectid': 0, 'key': 'first'}])
+        logged = []
+        helpers = load_functions('proj/main.py', {
+            'deepcopy': deepcopy,
+            'session': {'sessionid': 456, 'dtype': 'example'},
+            'g': SimpleNamespace(eng=object()),
+            'core': lambda df, tblname, eng, debug: {'core_errors': [], 'core_warnings': []},
+            'store_candidate': lambda eng, table, change_id, frame: None,
+            'read_snapshot': lambda eng, table, change_id, columns, kind: frame.copy(),
+            'current_app': SimpleNamespace(
+                dtypes={'example': {'custom_checks_functions': {'checked': 'checked'}}},
+                logger=SimpleNamespace(warning=lambda *args: logged.append(args)),
+            ),
+            'custom_checks': SimpleNamespace(checked=lambda df, table: {'errors': [], 'warnings': [{'error_message': 'custom'}]}),
+        })
+        results = helpers.check_submission({'checked': frame.copy(), 'unmapped': frame.copy()})
+        self.assertEqual(results['checked']['warnings'], [{'error_message': 'custom'}])
+        self.assertEqual(results['unmapped'], {'errors': [], 'warnings': []})
+        self.assertEqual([args[1] for args in logged], ['unmapped'])
 
 
 class BrandingTests(unittest.TestCase):

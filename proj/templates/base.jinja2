@@ -18,13 +18,15 @@
         {% endblock %}
     </head>
     <body>
+    {% set branding = config.get('branding', {}) %}
+    {% set brand_title = branding.get('title') or config.get('projectname', '') %}
     <a class="skip-link" href="#main-content">Skip to content</a>
     <header class="app-header">
-        <a class="app-brand" href="{{url_for('login.index')}}" aria-label="SMC BMP Regional Monitoring Network submissions">
+        <a class="app-brand" href="{{url_for('login.index')}}" aria-label="{{brand_title}} submissions">
             <img class="brand-logo" src="{{url_for('static', filename='sccwrp-logo.png')}}" alt="SCCWRP" width="80" height="55">
-            <span class="brand-text"><strong>SMC BMP Regional Monitoring Network</strong><span class="brand-caption">Data change requests</span></span>
+            <span class="brand-text"><strong>{{brand_title}}</strong><span class="brand-caption">Data change requests</span></span>
         </a>
-        <span class="program-label">SCCWRP <span>/</span> Southern California Stormwater Monitoring Coalition</span>
+        <span class="program-label">SCCWRP{% if branding.get('program_label') %} <span>/</span> {{branding['program_label']}}{% endif %}</span>
         {% block session_user_info %}
         {% if current_user.is_authenticated %}
         <details class="account-menu">
@@ -44,7 +46,7 @@
         <main id="main-content" tabindex="-1">
             {% block body %}{% endblock %}
         </main>
-        <footer class="app-footer"><span>Southern California Coastal Water Research Project</span><span>SMC BMP <span aria-hidden="true">/</span> Data stewardship</span></footer>
+        <footer class="app-footer"><span>Southern California Coastal Water Research Project</span><span>{{config.get('projectname', '')}} <span aria-hidden="true">/</span> Data stewardship</span></footer>
     {% block scripts %}
     <script src="{{url_for('static',filename='misc.js')}}"></script>
     {% endblock %}

@@ -2,7 +2,7 @@
 {% from 'auth-fields.jinja2' import field_input, flash_messages %}
 {% block body %}
 <section class="auth-layout">
-    <span class="eyebrow">SMC BMP / Agency access</span>
+    <span class="eyebrow">{{config.get('projectname', '')}} / Agency access</span>
     <h1>Create an account</h1>
     {{flash_messages(get_flashed_messages())}}
     <form id="sign-up-form" method="POST" action="{{url_for('auth.signup')}}">

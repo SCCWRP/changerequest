@@ -6,6 +6,7 @@ from flask import Blueprint, session, render_template, g, jsonify, current_app, 
 from flask_login import login_required, current_user
 from sqlalchemy import text
 
+from .utils.login import organization_login_field
 from .utils.mail import send_mail
 from .utils.request_artifacts import ledger_records
 from .utils.submissions import (
@@ -87,8 +88,8 @@ def savechanges():
         return jsonify(message='Your session expired. Select the submission again.'), 400
     if current_user.email_confirmed != 'yes' or current_user.is_authorized != 'yes':
         return jsonify(message='Your account is not approved for change requests.'), 403
-    organization_field = current_app.user_management['organization_login_field']
-    organization = session['login_fields'].get(organization_field, session['login_fields'].get('dataprovider'))
+    organization_field = organization_login_field(current_app.dtypes[session['dtype']], current_app.user_management)
+    organization = session['login_fields'].get(organization_field)
     if current_user.is_admin != 'yes' and current_user.organization != organization:
         return jsonify(message='You are not authorized for this submission.'), 403
     change_id = session['sessionid']

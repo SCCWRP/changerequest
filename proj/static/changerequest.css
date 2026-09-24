@@ -90,7 +90,7 @@ fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
 .search-panel { min-width: 0; background: white; border: 1px solid var(--line); border-radius: 6px; }
 .search-panel-heading { padding: 25px 28px 0; }
 .search-panel-heading h2 { margin-bottom: 19px; }
-.datatype-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--line); padding: 0 28px; }
+.datatype-tabs { display: flex; flex-wrap: wrap; column-gap: 24px; border-bottom: 1px solid var(--line); padding: 0 28px; }
 .infotab-header { min-height: 48px; padding: 12px 0; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); background: transparent; font-size: 13px; font-weight: 500; cursor: pointer; }
 .infotab-header.active { color: var(--accent); border-bottom-color: var(--accent); }
 .form-container { padding: 28px; }
@@ -145,7 +145,7 @@ fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
     .search-fields { grid-template-columns: 1fr; gap: 20px; }
     .form-container { padding: 22px 18px; }
     .search-panel-heading { padding: 22px 18px 0; }
-    .datatype-tabs { padding: 0 18px; gap: 20px; }
+    .datatype-tabs { padding: 0 18px; column-gap: 20px; }
     .infotab-header { font-size: 12px; }
     .search-submit { align-items: stretch; flex-direction: column; }
     .search-submit .btn { width: 100%; }

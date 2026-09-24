@@ -4,7 +4,7 @@ import pandas as pd
 from flask import Blueprint, request, redirect, url_for, jsonify, session, render_template, current_app, g
 from flask_login import login_required, current_user
 
-from .utils.login import get_login_field, get_submission_ids
+from .utils.login import get_login_field, get_submission_ids, organization_login_field
 from .utils.db import get_primary_key
 from .utils.submissions import (
     allocate_request, change_date, create_snapshots, drop_snapshots, pending_deletion,
@@ -69,8 +69,7 @@ def sessiondata():
         return jsonify(user_error_msg='Choose a valid datatype.'), 400
     fields = {field['fieldname']: request.form.get(field['fieldname'], '')
               for field in current_app.dtypes[dtype]['login_fields']}
-    organization_field = current_app.user_management['organization_login_field']
-    login_organization = fields.get(organization_field, fields.get('dataprovider'))
+    login_organization = fields.get(organization_login_field(current_app.dtypes[dtype], current_app.user_management))
     if current_user.email_confirmed != 'yes' or current_user.is_authorized != 'yes':
         return jsonify(user_error_msg='Your email must be confirmed and your account approved before requesting changes.'), 403
     if current_user.is_admin != 'yes' and current_user.organization != login_organization:
@@ -82,7 +81,7 @@ def sessiondata():
             raise ValueError('No completed, non-deleted submission matches these login fields and datatype.')
         tables = submission_tables(g.eng, current_app.dtypes[dtype]['tables'], submissionid)
         if not tables:
-            raise ValueError('This submission has no data in the configured tables. Contact SCCWRP if this is Survey123 metadata.')
+            raise ValueError('This submission has no data in the tables configured for this datatype.')
     except (ValueError, TypeError) as error:
         return jsonify(user_error_msg=str(error)), 400
     if session.get('tables') and session.get('sessionid'):

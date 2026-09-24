@@ -3,7 +3,16 @@
     "mail_server"     : "192.168.1.18",
     "send_from"    : "admin@checker.sccwrp.org",
     "projectname" : "Example Project",
+    "branding" : {
+        "title": "Example Regional Monitoring Program",
+        "program_label": "Example Monitoring Coalition",
+        "summary": "Chemistry data"
+    },
     "custom_unchanging_fields" : [],
+    "system_fields" : [
+        "globalid", "submissionid", "created_user", "created_date",
+        "last_edited_user", "last_edited_date", "warnings", "login_email", "login_agency"
+    ],
     "dtypes": {
         "chemistry" : {
             "human_friendly_dtype_name" : "Chemistry",

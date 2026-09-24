@@ -10,6 +10,7 @@
         const dtype = form.dataset.dtype;
         const fields = Array.from(form.querySelectorAll('[data-index]'));
         const submission = form.querySelector('[name="submissionid"]');
+        const submissionPrompt = submission.options[0].text;
         const message = document.getElementById(`${dtype}-submission-message`);
         const submitButton = form.querySelector('[type="submit"]');
         let selectionVersion = 0;
@@ -39,7 +40,7 @@
         fields.forEach((field, position) => field.addEventListener('change', async () => {
             selectionVersion++;
             fields.slice(position + 1).forEach(element => setOptions(element, [], 'Select previous field first'));
-            setOptions(submission, [], 'Select agency and email first');
+            setOptions(submission, [], submissionPrompt);
             submitButton.disabled = true;
             message.textContent = '';
             try { await loadField(position + 1); } catch (error) { message.textContent = error.message; }

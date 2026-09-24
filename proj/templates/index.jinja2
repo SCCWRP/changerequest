@@ -2,7 +2,7 @@
 {% block body %}
 <div class="workspace search-workspace">
     <div class="page-heading">
-        <div><span class="eyebrow">Submission workspace</span><h1>Find a submission</h1><p>BMP monitoring data &amp; site metadata</p></div>
+        <div><span class="eyebrow">Submission workspace</span><h1>Find a submission</h1>{% if config.get('branding', {}).get('summary') %}<p>{{config['branding']['summary']}}</p>{% endif %}</div>
         <span class="text-muted">Change requests <span aria-hidden="true">/</span> Submission lookup</span>
     </div>
     <div class="search-layout">
@@ -32,7 +32,7 @@
                         <div class="field submission-field">
                             <label for="{{dtype}}-submissionid-select">Submission</label>
                             <select name="submissionid" id="{{dtype}}-submissionid-select" class="login-field-element" data-dtype="{{dtype}}" required disabled>
-                                <option value="">Select agency and email first</option>
+                                <option value="">Select {% for field in settings['login_fields'] %}{{(field.fieldlabel or field.fieldname)|lower}}{{' and ' if not loop.last}}{% endfor %} first</option>
                             </select>
                         </div>
                     </div>

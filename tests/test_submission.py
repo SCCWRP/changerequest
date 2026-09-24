@@ -418,10 +418,11 @@ class ArtifactTests(unittest.TestCase):
 
         from flask import request, jsonify
         helpers = load_functions('proj/finalize.py', {
-            'session': {'sessionid': 456, 'submissionid': 123, 'tables': ['tbl_flow'], 'login_fields': {'agency': 'Agency'}},
+            'session': {'sessionid': 456, 'submissionid': 123, 'dtype': 'monitoring', 'tables': ['tbl_flow'], 'login_fields': {'agency': 'Agency'}},
             'request': request, 'jsonify': jsonify,
             'current_user': SimpleNamespace(email_confirmed='yes', is_authorized='yes', is_admin='no', organization='Agency'),
-            'current_app': SimpleNamespace(user_management={'organization_login_field': 'agency'}),
+            'current_app': SimpleNamespace(user_management={'organization_login_field': 'agency'}, dtypes={'monitoring': {}}),
+            'organization_login_field': load_functions('proj/utils/login.py', {}).organization_login_field,
             'request_lock': lambda change_id: Lock(), 'read_state': lambda change_id: state,
         })
         for form in ({'revision': 1, 'comment': ' ', 'confirmation': '123'},
@@ -431,6 +432,36 @@ class ArtifactTests(unittest.TestCase):
                 response, status = helpers.savechanges()
                 self.assertIn(status, (400, 409))
                 self.assertTrue(response.json['message'])
+
+
+class ConfigurationTests(unittest.TestCase):
+    def test_datatype_can_override_organization_login_field(self):
+        helpers = load_functions('proj/utils/login.py', {})
+        user_management = {'organization_login_field': 'agency'}
+        self.assertEqual(helpers.organization_login_field({}, user_management), 'agency')
+        self.assertEqual(helpers.organization_login_field({'organization_login_field': 'dataprovider'}, user_management), 'dataprovider')
+
+
+
+class BrandingTests(unittest.TestCase):
+    def render_base(self, config):
+        from jinja2 import Environment, FileSystemLoader
+        templates = Environment(loader=FileSystemLoader(str(ROOT / 'proj' / 'templates')), autoescape=True)
+        return templates.get_template('base.jinja2').render(
+            config=config, request=SimpleNamespace(script_root=''),
+            current_user=SimpleNamespace(is_authenticated=False), url_for=lambda endpoint, **values: '/',
+        )
+
+    def test_header_and_footer_use_configured_branding(self):
+        page = self.render_base({'projectname': 'Example', 'branding': {'title': 'Example Program', 'program_label': 'Example Coalition'}})
+        self.assertIn('<strong>Example Program</strong>', page)
+        self.assertIn('SCCWRP <span>/</span> Example Coalition', page)
+        self.assertIn('Example <span aria-hidden="true">/</span> Data stewardship', page)
+
+    def test_branding_defaults_to_project_name(self):
+        page = self.render_base({'projectname': 'Example'})
+        self.assertIn('<strong>Example</strong>', page)
+        self.assertIn('<span class="program-label">SCCWRP</span>', page)
 
 
 if __name__ == '__main__':

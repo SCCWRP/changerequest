@@ -3,6 +3,10 @@ from sqlalchemy import text
 from .submissions import identifier, validate_table
 
 
+def organization_login_field(dtype_settings, user_management):
+    return dtype_settings.get('organization_login_field', user_management['organization_login_field'])
+
+
 def tracking_filter(dtypes, dtype, eng, values):
     if dtype not in dtypes:
         raise ValueError('Choose a valid datatype.')

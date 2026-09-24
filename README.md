@@ -51,6 +51,24 @@ Schema for db_editors (which is essentially a users table)
 
 Users must be approved by a database administrator directly in the backend - at this time the app does not have the feature of an admin portal or admin login, but that is an enhancement i want to implement when i have time
 
+## Configuration
+
+Each deployment supplies its own untracked `proj/config/config.json` (start from
+`proj/config/exampleconfig.json`) and `docker/deploy.sh`. The app generates the
+`proj/custom/*_custom.py` stubs named in the configuration.
+
+- `projectname` labels emails, the sign-in and account pages, and the footer.
+- `branding` is optional. `title` names the program in the header and defaults to
+  `projectname`; `program_label` follows "SCCWRP /" in the header; `summary` appears
+  under the submission search heading. Omitted keys are not shown.
+- Each key under `dtypes` must equal the `datatype` value the checker writes to
+  `submission_tracking_table`, and each of its `login_fields` must exist there as a
+  `login_<fieldname>` column. A datatype whose organization is entered through a
+  different login field (for example `dataprovider`) sets `organization_login_field`
+  to override `user_management.organization_login_field`.
+- Configured table names must be 31 characters or fewer, because the submission
+  workbook uses them as sheet names.
+
 ## Submission Editing And Deletion
 
 Select a datatype, login fields, and completed submission ID. The application checks
@@ -152,12 +170,9 @@ whose `deleted_at` is non-null. Checker inserts continue to work unchanged.
 | deleted_by | YES | text | Email of the deletion requester |
 | deletion_change_id | YES | int4 | Change history ID recording the deletion |
 
-`meta` remains configured. The note in `proj/config/comment about meta.txt` says
-metadata came from Survey123 and was removed from configuration, but live config
-includes it. Without matching completed (`submit = 'yes'`) tracking rows, the UI
-will report no eligible submissions. A tracking row with no populated configured
-tables also gives a clear error. No Survey123 lineage or missing tracking rows are
-invented by this change.
+Without matching completed (`submit = 'yes'`) tracking rows, the UI reports no
+eligible submissions. A tracking row with no populated configured tables also gives
+a clear error. The app does not invent missing tracking rows.
 
 ## Startup DDL Inventory
 

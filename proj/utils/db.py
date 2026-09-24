@@ -10,21 +10,29 @@ def get_primary_key(table, eng):
 
     sql = f'''
         SELECT
-            tc.TABLE_NAME,
-            C.COLUMN_NAME,
-            C.data_type 
-        FROM
-            information_schema.table_constraints tc
-            JOIN information_schema.constraint_column_usage AS ccu USING ( CONSTRAINT_SCHEMA, CONSTRAINT_NAME )
-            JOIN information_schema.COLUMNS AS C ON C.table_schema = tc.CONSTRAINT_SCHEMA 
-            AND tc.TABLE_NAME = C.TABLE_NAME 
-            AND ccu.COLUMN_NAME = C.COLUMN_NAME 
-        WHERE
-            constraint_type = 'PRIMARY KEY' 
-            AND tc.TABLE_NAME = '{table}';
+            tc.table_schema,
+            tc.table_name,
+            kcu.column_name,
+            c.data_type
+        FROM 
+            information_schema.table_constraints AS tc
+        JOIN 
+            information_schema.key_column_usage AS kcu
+            ON tc.constraint_name = kcu.constraint_name
+            AND tc.table_schema = kcu.table_schema
+        JOIN 
+            information_schema.columns AS c
+            ON c.table_schema = kcu.table_schema
+            AND c.table_name = kcu.table_name
+            AND c.column_name = kcu.column_name
+        WHERE 
+            tc.constraint_type = 'PRIMARY KEY'
+            AND tc.table_name = '{table}';
     '''
 
     return pd.read_sql(sql, eng).column_name.tolist()
+
+
     
 
 def get_pkey_constraint_name(tablename, conn, schema = 'sde'):

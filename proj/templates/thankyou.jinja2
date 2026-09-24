@@ -17,6 +17,9 @@
             {% for key in login_fields %}
             <p>{{key}}: {{login_fields[key]}}</p>
             {% endfor %}
+            <p>
+                <a class="btn btn-outline-primary" role="button" href="{{url_for('export.download_change_history')}}">Download Change Summary</a>
+            </p>
         {%else%}
             <p>We are sorry, something went wrong. SCCWRP staff has been notified.</p>
         {%endif%}

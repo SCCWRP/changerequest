@@ -48,7 +48,7 @@ def download_change_history():
     return send_file(
         session['comparison_path'],
         as_attachment = True,
-        download_name = f"{session.get('sessionid')}_comparison.xlsx"
+        download_name = f"{session.get('sessionid') or session.get('finalized_change_id')}_comparison.xlsx"
     )
 
 # # This will be for editing in browser

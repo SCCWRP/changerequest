@@ -232,6 +232,9 @@ UPDATE RECORDS: (See attached SQL file)\n
         login_fields = session.pop('login_fields', None)
         change_id = session.pop('sessionid', None)
 
+        # the thank you page offers the change summary for download, which needs the change id after sessionid is gone
+        session['finalized_change_id'] = change_id
+
         return render_template(
             "thankyou.jinja2",
             success = True,

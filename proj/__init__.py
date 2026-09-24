@@ -116,8 +116,9 @@ def teardown_request(exception):
 checker_app_login_fields = pd.read_sql("SELECT column_name FROM information_schema.columns WHERE column_name LIKE 'login_%%' ;", app.eng).column_name.tolist()
 
 # list of database fields that should not be queried on - removed status could be a problem 9sep17 - added trawl calculated fields - removed projectcode for smc part of tbl_phab
+# projects set up before system_fields moved into config.json fall back to the list that used to be hardcoded here
 app.system_fields = [
-    *CUSTOM_CONFIG.get("system_fields"),
+    *CUSTOM_CONFIG.get("system_fields", ["globalid", "submissionid", "created_user", "created_date", "last_edited_user", "last_edited_date", "warnings", "login_email", "login_agency"]),
     *checker_app_login_fields
 ]
 
@@ -185,6 +186,8 @@ app.eng.execute(
     )
     """
 )
+# change history tables created before change_comment existed need the column added
+app.eng.execute(f"""ALTER TABLE "sde"."{os.environ.get('CHANGE_HISTORY_TABLE')}" ADD COLUMN IF NOT EXISTS "change_comment" text COLLATE "pg_catalog"."default";""")
 
 
 

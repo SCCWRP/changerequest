@@ -11,14 +11,33 @@ from datetime import datetime
 
 from .utils.mail import send_mail
 from .utils.token import generate_confirmation_token, confirm_token
+from .utils.login_codes import code_login_enabled, issue_code, verify_code, CODE_TTL
 from .models import User
-from .forms import SignupForm, LoginForm, EmailForm, ResetPasswordForm
+from .forms import SignupForm, CodeSignupForm, LoginForm, EmailForm, ResetPasswordForm, SignInCodeForm
 from . import login_manager, db
 
 
 bcrypt = Bcrypt()
 
 auth_bp = Blueprint('auth', __name__, url_prefix = "/auth")
+
+
+def find_user(email):
+    return User.query.filter(db.func.lower(User.email) == email.strip().lower()).first()
+
+
+def safe_next(next_page):
+    # only follow redirects within this app
+    if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+        return next_page
+    return None
+
+
+# When sign-in is by emailed code, there are no passwords to reset or signup links to confirm
+@auth_bp.before_request
+def password_routes_off():
+    if code_login_enabled(current_app.config) and request.endpoint in ('auth.reset_request', 'auth.reset_password', 'auth.confirm_email'):
+        return redirect(url_for('auth.signin'))
 
 
 
@@ -41,6 +60,9 @@ def load_user(user_id):
 @auth_bp.route('/signup', methods = ['GET','POST'])
 def signup():
     
+    if code_login_enabled(current_app.config):
+        return code_signup()
+
     form = SignupForm()
     if form.validate_on_submit():
         existing_user = User.query.filter_by(email=form.email.data).first()
@@ -82,11 +104,105 @@ def signup():
         form=form
     )
 
+def code_signup():
+    form = CodeSignupForm()
+    if form.validate_on_submit():
+        email = form.email.data.strip().lower()
+        if find_user(email) is None:
+            user = User(
+                firstname=form.firstname.data,
+                lastname=form.lastname.data,
+                email=email,
+                organization=form.organization.data
+            )
+            db.session.add(user)
+            db.session.commit()
+            send_mail(
+                current_app.send_from, 
+                current_app.maintainers, 
+                'Change Request App Reqistration Request', 
+                text = f'{user.email} has signed up to change data for the project {current_app.config.get("projectname")}. You will need to go to the database to approve them.',
+                server = current_app.config.get('MAIL_SERVER')
+            )
+            flash(f"Thanks for signing up. Once SCCWRP approves {email}, you can sign in with a code sent to that address.", 'info')
+            return redirect(url_for('auth.signin'))
+
+        flash('A user already exists with that email address.', 'error')
+
+    return render_template('signup_code.jinja2', form=form)
+
+
+def code_signin():
+    form = EmailForm()
+    if form.validate_on_submit():
+        email = form.email.data.strip().lower()
+        user = find_user(email)
+
+        # Same response whether or not the email is registered, so the page can't be used to look up who has an account
+        if user is not None and user.is_authorized == 'yes':
+            code = issue_code(current_app.eng, current_app.users_table, user.email)
+            if code is not None:
+                html = render_template(
+                    'signin_code_email.jinja2',
+                    code = code,
+                    minutes = int(CODE_TTL.total_seconds() // 60),
+                    projectname = current_app.config.get("projectname")
+                )
+                send_mail(
+                    current_app.send_from,
+                    [user.email],
+                    f'{current_app.config.get("projectname")} Change Request App sign-in code',
+                    html = html,
+                    server = current_app.config.get('MAIL_SERVER')
+                )
+
+        session['pending_signin_email'] = email
+        session['pending_signin_next'] = safe_next(request.args.get('next'))
+        return redirect(url_for('auth.verify'))
+
+    return render_template('signin_code.jinja2', form=form)
+
+
+@auth_bp.route('/verify', methods = ['GET','POST'])
+def verify():
+    if not code_login_enabled(current_app.config):
+        return redirect(url_for('auth.signin'))
+    if current_user.is_authenticated:
+        return redirect(url_for('login.index'))
+
+    email = session.get('pending_signin_email')
+    if not email:
+        return redirect(url_for('auth.signin'))
+
+    form = SignInCodeForm()
+    if form.validate_on_submit():
+        user = find_user(email)
+        if user is not None and user.is_authorized == 'yes' and verify_code(current_app.eng, current_app.users_table, user.email, form.code.data):
+            # Getting the code proves they own the address
+            if user.email_confirmed != 'yes':
+                user.email_confirmed = 'yes'
+                user.email_confirmed_date = datetime.now()
+                db.session.commit()
+            login_user(user)
+            session['session_user_email'] = user.email
+            session['session_user_agency'] = user.organization
+            next_page = session.pop('pending_signin_next', None)
+            session.pop('pending_signin_email', None)
+            return redirect(next_page or url_for('login.index'))
+
+        flash('That code is incorrect or has expired. Check the latest email, or request a new code.', 'error')
+
+    return render_template('verify_code.jinja2', form=form, email=email, resend_form=EmailForm(email=email))
+
+
 @auth_bp.route('/signin', methods = ['GET','POST'])
 def signin():
     
     if current_user.is_authenticated:
         return redirect(url_for('login.index'))
+
+    if code_login_enabled(current_app.config):
+        return code_signin()
 
     form = LoginForm()
     if form.validate_on_submit():

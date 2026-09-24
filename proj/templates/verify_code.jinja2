@@ -1,0 +1,32 @@
+{% extends 'auth_base.jinja2' %}
+
+{% block title %}Enter code{% endblock %}
+
+{% block card %}
+<div class="card">
+  <h1>Check your email</h1>
+  <p class="lead">
+    If <strong>{{ email }}</strong> is registered and approved, a 6-digit code is on its way.
+    It expires in 10 minutes. Check your spam folder if you don't see it.
+  </p>
+
+  <form method="POST" action="{{ url_for('auth.verify') }}" novalidate>
+    {{ form.csrf_token }}
+    <div class="field">
+      <label for="code">Sign-in code</label>
+      {{ form.code(id='code', class='code', inputmode='numeric', pattern='[0-9]*', maxlength=6, autocomplete='one-time-code', autofocus=true) }}
+      {% for error in form.code.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="actions">
+      <a class="text" href="{{ url_for('auth.signin') }}">Use a different email</a>
+      <button type="submit">Sign in</button>
+    </div>
+  </form>
+</div>
+
+<form method="POST" action="{{ url_for('auth.signin') }}" class="footer">
+  {{ resend_form.csrf_token }}
+  {{ resend_form.email(type='hidden') }}
+  Didn't get it? <button type="submit" class="text">Send a new code</button>
+</form>
+{% endblock %}

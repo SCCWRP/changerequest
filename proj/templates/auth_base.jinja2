@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Sign in{% endblock %} - {{ config.get('projectname') or 'SCCWRP' }} Data Change Request</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* Same palette and components as smcchecker's sample tracking tool */
+  :root {
+    --blue: #1a73e8;
+    --blue-dark: #1765cc;
+    --red: #d93025;
+    --green: #1e8e3e;
+    --ink: #202124;
+    --ink-light: #5f6368;
+    --border: #dadce0;
+    --bg: #f8f9fa;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Roboto", "Google Sans", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    margin: 0;
+    padding: 3rem 1rem 4rem;
+  }
+  .wrap { max-width: 440px; margin: 0 auto; }
+  .wrap.wide { max-width: 560px; }
+  .brand { font-family: "Google Sans", sans-serif; font-size: 1.6rem; font-weight: 500; text-align: center; margin: 0 0 0.25rem; }
+  .brand-sub { text-align: center; color: var(--ink-light); font-size: 0.95rem; margin: 0 0 1.75rem; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem 1.75rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.08), 0 1px 3px 1px rgba(60,64,67,0.05);
+  }
+  h1 { font-family: "Google Sans", sans-serif; font-size: 1.35rem; font-weight: 400; margin: 0 0 0.5rem; }
+  h2 { font-family: "Google Sans", sans-serif; font-size: 1rem; font-weight: 500; margin: 0 0 0.75rem; }
+  p.lead { color: var(--ink-light); font-size: 0.92rem; line-height: 1.5; margin: 0 0 1.5rem; }
+  p.lead strong { color: var(--ink); font-weight: 500; }
+
+  .field { display: flex; flex-direction: column; margin-bottom: 1.25rem; }
+  label { font-size: 0.8rem; font-weight: 500; color: var(--ink-light); margin-bottom: 0.4rem; letter-spacing: 0.01em; }
+  input[type=text], input[type=email], select {
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,115,232,0.18); }
+  input.code { font-size: 1.6rem; letter-spacing: 0.5em; text-align: center; font-family: "Google Sans", "Roboto Mono", monospace; padding-left: 1.2rem; }
+  .field-error { color: var(--red); font-size: 0.8rem; margin-top: 0.35rem; }
+
+  .actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.75rem; }
+  button, input[type=submit] {
+    background: var(--blue);
+    color: white;
+    border: none;
+    padding: 0.7rem 1.6rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    font-family: "Google Sans", sans-serif;
+    letter-spacing: 0.015em;
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+  button:hover, input[type=submit]:hover { background: var(--blue-dark); box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15); }
+  button.text, a.text {
+    background: none;
+    box-shadow: none;
+    color: var(--blue);
+    padding: 0.7rem 0.5rem;
+    font-family: "Google Sans", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 20px;
+  }
+  button.text:hover, a.text:hover { background: #f1f3f4; box-shadow: none; }
+
+  .alert { padding: 0.85rem 1.1rem; border-radius: 8px; margin-bottom: 1.25rem; font-size: 0.9rem; line-height: 1.45; }
+  .alert.error { background: #fce8e6; border: 1px solid #f6c6c1; color: var(--red); }
+  .alert.info, .alert.message, .alert.success { background: #e8f0fe; border: 1px solid #c6dafc; color: var(--blue-dark); }
+
+  .footer { text-align: center; font-size: 0.85rem; color: var(--ink-light); }
+  .footer a { color: var(--blue); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+  ol.steps { color: var(--ink-light); font-size: 0.88rem; line-height: 1.6; padding-left: 1.2rem; margin: 0; }
+</style>
+</head>
+<body>
+  <div class="wrap {% block wrap_class %}{% endblock %}">
+    <div class="brand">{{ config.get('projectname') or 'SCCWRP' }} Data Change Request</div>
+    <p class="brand-sub">Southern California Coastal Water Research Project</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+      <div class="alert {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block card %}{% endblock %}
+  </div>
+</body>
+</html>

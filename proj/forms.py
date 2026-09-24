@@ -42,8 +42,8 @@ cur.close()
 conn.close()
 
 
-class SignupForm(FlaskForm):
-    """User Sign-up Form."""
+class CodeSignupForm(FlaskForm):
+    """User Sign-up Form, for when users sign in with an emailed code instead of a password."""
     firstname = StringField(
         'First Name',
         validators=[DataRequired()]
@@ -65,6 +65,11 @@ class SignupForm(FlaskForm):
         choices=org_select_opts,
         validators=[DataRequired()]
     )
+    submit = SubmitField('Register')
+
+
+class SignupForm(CodeSignupForm):
+    """User Sign-up Form."""
     password = PasswordField(
         'Password',
         validators=[
@@ -100,12 +105,24 @@ class EmailForm(FlaskForm):
     """Form with just email to resend the token, or to reset password"""
     email = StringField(
         'Email',
+        filters=[lambda x: x.strip() if x else x],
         validators=[
             DataRequired(),
             Email(message='Enter a valid email.')
         ]
     )
     submit = SubmitField('Send')
+
+class SignInCodeForm(FlaskForm):
+    """Form for the one-time code emailed to the user"""
+    code = StringField(
+        'Sign-in code',
+        validators=[
+            DataRequired(),
+            Length(min=6, max=6, message='The code is 6 digits.')
+        ]
+    )
+    submit = SubmitField('Sign in')
 
 class ResetPasswordForm(FlaskForm):
     password = PasswordField('Password', validators=[

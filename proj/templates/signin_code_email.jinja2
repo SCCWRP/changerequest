@@ -1,0 +1,12 @@
+<html>
+<body style="margin:0; padding:24px; background:#f8f9fa; font-family:Roboto, Arial, sans-serif; color:#202124;">
+  <div style="max-width:440px; margin:0 auto; background:#ffffff; border:1px solid #dadce0; border-radius:12px; padding:32px 28px;">
+    <p style="font-size:18px; margin:0 0 16px;">Your sign-in code{% if projectname %} for the {{ projectname }} Change Request App{% endif %}</p>
+    <p style="font-size:32px; letter-spacing:8px; font-weight:500; color:#1a73e8; margin:0 0 16px;">{{ code }}</p>
+    <p style="font-size:14px; color:#5f6368; line-height:1.5; margin:0;">
+      This code expires in {{ minutes }} minutes and can only be used once.
+      If you didn't try to sign in, you can ignore this email.
+    </p>
+  </div>
+</body>
+</html>

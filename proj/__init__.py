@@ -14,6 +14,7 @@ if not os.path.exists(os.path.join(os.getcwd(), 'proj', 'custom', '__init__.py')
 
 from .custom.functions import add_custom_checks_function, fix_custom_imports
 from .custom.exceptions import ConfigurationError
+from .utils.login_codes import code_login_enabled, create_codes_table
 
 if os.environ.get("FLASK_APP_SECRET_KEY") is None:
     raise ConfigurationError("No secret key found among the environment variables")
@@ -209,6 +210,11 @@ if not users_table_exists:
         """
     )
 
+
+
+# Signing in with an emailed code needs a table to hold the codes
+if code_login_enabled(app.config):
+    create_codes_table(app.eng, app.users_table)
 
 
 # import blueprints down here after custom imports are fixed

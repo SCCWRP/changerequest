@@ -1,0 +1,45 @@
+{% extends 'auth_base.jinja2' %}
+
+{% block title %}Create account{% endblock %}
+{% block wrap_class %}wide{% endblock %}
+
+{% macro render_field(field, type='text', autocomplete=None) %}
+  <div class="field">
+    {{ field.label }}
+    {% if field.type == 'SelectField' %}
+      {{ field() }}
+    {% else %}
+      {{ field(type=type, autocomplete=autocomplete) }}
+    {% endif %}
+    {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+  </div>
+{% endmacro %}
+
+{% block card %}
+<div class="card">
+  <h1>Create account</h1>
+  <p class="lead">Request access to edit data submitted by your agency. There's no password: once you're approved, you'll sign in with a code sent to your email.</p>
+
+  <form method="POST" action="{{ url_for('auth.signup') }}" novalidate>
+    {{ form.csrf_token }}
+    {{ render_field(form.firstname, autocomplete='given-name') }}
+    {{ render_field(form.lastname, autocomplete='family-name') }}
+    {{ render_field(form.email, type='email', autocomplete='email') }}
+    {{ render_field(form.organization) }}
+    <div class="actions">
+      <a class="text" href="{{ url_for('auth.signin') }}">Sign in instead</a>
+      <button type="submit">Request access</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>What happens next</h2>
+  <ol class="steps">
+    <li>SCCWRP's IT department reviews your request and approves you to edit data.</li>
+    <li>Sign in with your email. We'll send you a 6-digit code each time.</li>
+    <li>You can then open and change data submitted by your agency.</li>
+    <li>Questions? Email <a href="mailto:IT@sccwrp.org">IT@sccwrp.org</a>.</li>
+  </ol>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'auth_base.jinja2' %}
+
+{% block title %}Sign in{% endblock %}
+
+{% block card %}
+<div class="card">
+  <h1>Sign in</h1>
+  <p class="lead">Enter the email address SCCWRP approved for editing data. We'll email you a 6-digit code to sign in with.</p>
+
+  <form method="POST" action="{{ url_for('auth.signin', next=request.args.get('next')) }}" novalidate>
+    {{ form.csrf_token }}
+    <div class="field">
+      <label for="email">Email</label>
+      {{ form.email(type='email', id='email', autocomplete='email', autofocus=true) }}
+      {% for error in form.email.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+    </div>
+    <div class="actions">
+      <a class="text" href="{{ url_for('auth.signup') }}">Create account</a>
+      <button type="submit">Send code</button>
+    </div>
+  </form>
+</div>
+<p class="footer">Need help? Email <a href="mailto:IT@sccwrp.org">IT@sccwrp.org</a></p>
+{% endblock %}

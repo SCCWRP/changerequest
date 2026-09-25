@@ -1,156 +1,182 @@
-import { addTips } from "./tooltip.js";
-import { saveChanges } from "./save.js";
+import { addTips } from './tooltip.js';
 
-(function(){
-    
-    const uploadForm = document.querySelector("#upload-form");
-    
-    
-    /* The routine that gets executed when the file is submitted */
-    uploadForm.addEventListener("submit", async function(event){
-        event.preventDefault();
-        event.stopPropagation();
-    
-        // show loader gif
-        const loadingModal = document.getElementById('loading-modal');
-        loadingModal.style.display = 'block';
-    
-        /* unhide the datatable containers */
-        Array.prototype.slice.call(document.querySelectorAll(".datatable-container")).map(
-            c => c.classList.remove("hidden")
-        );
-        document.getElementById('change-report-container').classList.remove('hidden');
-    
-        document.querySelector(".records-display-inner-container").innerHTML = `<img src="/${$SCRIPT_ROOT}/static/loader.gif">`;
-    
-        const dropped_files = document.querySelector('[type=file]').files;
-        const formData = new FormData();
-        for(let i = 0; i < dropped_files.length; ++i){
-            formData.append('files[]', dropped_files[i]);
-        }
-    
-        try {
-            let result = await fetch(`/${$SCRIPT_ROOT}/compare`, {
-                method: 'POST',
-                body: formData
+export const root = `/${$SCRIPT_ROOT}`.replace(/\/$/, '');
+export const context = JSON.parse(document.getElementById('submission-context').textContent);
+export let report = null;
+let selectedTable = null;
+let dirty = false;
+let busy = false;
+const selector = document.getElementById('report-table-selector');
+const status = document.getElementById('request-status');
+
+function captureTable() {
+    if (report && selectedTable) {
+        report.tables[selectedTable].tbl = document.getElementById('changed-records-display-inner-container').innerHTML;
+    }
+}
+
+export function invalidateReport() {
+    dirty = true;
+    document.querySelectorAll('.clean-data-post-change-option').forEach(button => button.classList.add('hidden'));
+    const state = document.getElementById('workflow-status');
+    state.textContent = 'Changes not saved';
+    state.className = 'workflow-status needs-review';
+}
+
+export function browserEdits() {
+    captureTable();
+    const tables = {};
+    Object.entries(report.tables).forEach(([table, data]) => {
+        const container = document.createElement('div');
+        container.innerHTML = data.tbl;
+        tables[table] = Array.from(container.querySelectorAll('tbody tr')).map((row, position) => {
+            const values = {};
+            row.querySelectorAll('td').forEach(cell => {
+                const columnClass = Array.from(cell.classList).find(name => name.startsWith('colname-'));
+                values[columnClass.slice('colname-'.length)] = cell.textContent;
             });
-    
-            if (!result.ok) {
-                throw new Error(`Server error: ${result.statusText}`);
-            }
-    
-            let data = await result.json();
-    
-            // Assuming formatDataTable and tableNavigation exist
-            document.querySelector("#changed-records-display-inner-container").innerHTML = data.tbl;
-            document.querySelector("#added-records-display-inner-container").innerHTML = data.addtbl;
-            document.querySelector("#deleted-records-display-inner-container").innerHTML = data.deltbl;
-    
-            formatDataTable(data);
-            tableNavigation();
-    
-            document.getElementById('change-report-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    
-            // handle buttons visibility based on error presence
-            Array.prototype.slice.call(document.querySelectorAll(".post-change-option")).map((b) => {
-                if (!data.errors || data.errors.length === 0) {
-                    b.classList.remove("hidden");
-                } else {
-                    b.classList.contains('clean-data-post-change-option') ? b.classList.add("hidden") : b.classList.remove("hidden");
-                }
-            });
-    
-            addTips();
-    
-        } catch (error) {
-            console.error("An error occurred:", error);
-            alert("An error occurred during the file upload process, and SCCWRP Staff has been notified. Please try again.");
-        } finally {
-            // hide loader gif
-            loadingModal.style.display = 'none';
+            return {row: data.edit_rows[position], values};
+        });
+    });
+    return {tables, revision: report.revision};
+}
+
+function showTable() {
+    const data = report.tables[selectedTable];
+    document.getElementById('changed-records-display-inner-container').innerHTML = data.tbl;
+    document.getElementById('added-records-display-inner-container').innerHTML = data.addtbl;
+    document.getElementById('deleted-records-display-inner-container').innerHTML = data.deltbl;
+    document.getElementById('report-primary-key').textContent = `Primary key: ${context.pkeys[selectedTable].join(', ')}`;
+    document.getElementById('report-counts').textContent = `${data.counts.modified} changed, ${data.counts.added} added, ${data.counts.deleted} deleted`;
+    document.getElementById('changed-count').textContent = data.errors.length ? data.edit_rows.length : data.counts.modified;
+    document.getElementById('added-count').textContent = data.counts.added;
+    document.getElementById('deleted-count').textContent = data.counts.deleted;
+    document.getElementById('report-warnings').textContent = [
+        ...data.errors.map(error => error.error_message), ...data.warnings.map(warning => warning.error_message)
+    ].join('\n');
+    formatDataTable(report, selectedTable);
+    tableNavigation();
+    addTips();
+    ['changed', 'added', 'deleted'].forEach(kind => {
+        const container = document.getElementById(`${kind}-records-display-inner-container`);
+        if (!container.querySelector('tbody tr') && !container.querySelector('.table-empty')) {
+            const empty = document.createElement('p');
+            empty.className = 'table-empty';
+            empty.textContent = `No ${kind} records in this table.`;
+            container.append(empty);
         }
     });
-    
-
-    // the edit submission page should warn them they might have unsaved changes
-    window.onbeforeunload = () => {return true}
-
-    // now add the listener for the save changes button, now that they have made an initial change request with the excel file
-    document.getElementById('save-change-btn').addEventListener('click', saveChanges)
-    Array.from(document.getElementsByClassName('editable-cell')).forEach(c => {
-        c.addEventListener()
-    })
-
-})()
-
-
-// (function(){
-
-// })()
-
-
-window.addEventListener("load", function(){
-
-    // select the uploadForm that we are going to be submitting the user's file with
-    const uploadForm = document.querySelector("#upload-form");
-
-    // Drag and Drop listener
-    // Prevent defaults on drag events
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        document.addEventListener(eventName, preventDefaults, false);
+    document.querySelectorAll('#changed-records-display-inner-container [contenteditable]').forEach(cell => {
+        cell.addEventListener('input', () => {
+            invalidateReport();
+            status.textContent = 'Unsaved browser corrections.';
+        });
     });
-
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
+    if (report.request_type === 'delete' || (!data.errors.length && !data.counts.modified && data.counts.deleted)) {
+        document.getElementById('deleted-tab').onclick();
+    } else if (!data.errors.length && !data.counts.modified && data.counts.added) {
+        document.getElementById('added-tab').onclick();
     }
-    
-    // Highlight drop area when item is dragged over it
-    ['dragenter', 'dragover'].forEach(eventName => {
-        document.addEventListener(eventName, highlight, false);
+}
+
+export function renderReport(data) {
+    report = data;
+    dirty = false;
+    selector.replaceChildren();
+    Object.entries(data.tables).forEach(([table, details]) => {
+        const count = Object.values(details.counts).reduce((total, value) => total + value, 0);
+        selector.add(new Option(`${table} (${details.errors.length ? 'needs correction' : count + ' changes'})`, table));
     });
+    selectedTable = data.tables[selectedTable] ? selectedTable : selector.options[0].value;
+    selector.value = selectedTable;
+    status.textContent = [data.message, ...(data.warnings || [])].filter(Boolean).join('\n');
+    status.classList.remove('is-error');
+    document.getElementById('review-placeholder').classList.add('hidden');
+    document.getElementById('review-legend').classList.remove('hidden');
+    document.getElementById('review-actions').classList.remove('hidden');
+    document.getElementById('change-report-container').classList.remove('hidden');
+    document.querySelectorAll('.clean-data-post-change-option').forEach(button => button.classList.toggle('hidden', !data.ready));
+    document.getElementById('save-change-btn').classList.toggle('hidden', data.request_type === 'delete');
+    document.getElementById('finalize-label').textContent = data.request_type === 'delete' ? 'Submit deletion request' : 'Submit change request';
+    document.getElementById('finalize-submission').classList.toggle('btn-danger', data.request_type === 'delete');
+    const state = document.getElementById('workflow-status');
+    const hasErrors = Object.values(data.tables).some(table => table.errors.length);
+    state.textContent = hasErrors ? 'Needs correction' : data.ready ? 'Ready for review' : 'No changes';
+    state.className = `workflow-status ${hasErrors ? 'needs-review' : data.ready ? 'ready' : ''}`;
+    document.getElementById('final-revision').value = data.revision;
+    showTable();
+}
 
-    ['dragleave', 'drop'].forEach(eventName => {
-        document.addEventListener(eventName, unhighlight, false);
-    });
+selector.addEventListener('change', () => {
+    captureTable();
+    selectedTable = selector.value;
+    showTable();
+});
 
-    function highlight(e) {
-        document.body.style.backgroundColor = '#cccccc'; // Use your own highlight style
+export async function sendComparison(url, options) {
+    if (busy) return;
+    busy = true;
+    const loader = document.getElementById('loading-modal');
+    loader.style.display = 'block';
+    invalidateReport();
+    document.querySelectorAll('.editor-workspace button, .editor-workspace input, #report-table-selector').forEach(control => { control.disabled = true; });
+    document.getElementById('workflow-status').textContent = 'Processing';
+    try {
+        const response = await fetch(url, options);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'The request failed.');
+        renderReport(data);
+        document.getElementById('change-report-container').scrollIntoView({behavior: 'smooth', block: 'start'});
+    } catch (error) {
+        status.textContent = error.message;
+        status.classList.add('is-error');
+        document.getElementById('workflow-status').textContent = 'Comparison incomplete';
+    } finally {
+        loader.style.display = 'none';
+        busy = false;
+        document.querySelectorAll('.editor-workspace button, .editor-workspace input, #report-table-selector').forEach(control => { control.disabled = false; });
     }
+}
 
-    function unhighlight(e) {
-        document.body.style.backgroundColor = ''; // Reset the highlight style
+const uploadForm = document.getElementById('upload-form');
+const fileInput = document.getElementById('file');
+function updateFilename() {
+    document.getElementById('selected-filename').textContent = fileInput.files[0]?.name || 'No workbook selected';
+}
+fileInput.addEventListener('change', updateFilename);
+uploadForm.addEventListener('submit', event => {
+    event.preventDefault();
+    updateFilename();
+    if (fileInput.files.length !== 1 || !fileInput.files[0].name.toLowerCase().endsWith('.xlsx')) {
+        status.textContent = 'Choose one .xlsx workbook.';
+        status.classList.add('is-error');
+        return;
     }
+    sendComparison(`${root}/compare`, {method: 'POST', body: new FormData(uploadForm)});
+});
 
-    // Handle dropped files
-    document.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
-        let files = e.dataTransfer.files;
-
-        // Get the file input and set its files property
-        let fileInput = document.querySelector('input#file');
-        fileInput.files = files;
-
-        // Submit the form
-        // uploadForm.submit();
-        const event = new Event('submit', {cancelable: true});
-        uploadForm.dispatchEvent(event);
-
+const deletionButton = document.getElementById('request-deletion');
+const deletionDialog = document.getElementById('deletion-dialog');
+deletionButton?.addEventListener('click', () => {
+    if (!busy) {
+        deletionDialog.returnValue = '';
+        deletionDialog.showModal();
     }
-})
+});
+deletionDialog.addEventListener('close', () => {
+    if (deletionDialog.returnValue === 'prepare') {
+        sendComparison(`${root}/request-deletion`, {method: 'POST'});
+    }
+});
 
-
-
-// /* Saving changes when they edit in the browser */
-// (function(){
-    
-// })()
-
-
-
-// /* global change */
-// (function(){
-
-// })()
-
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => document.addEventListener(name, event => {
+    event.preventDefault();
+    event.stopPropagation();
+    document.body.classList.toggle('file-dragging', ['dragenter', 'dragover'].includes(name));
+}));
+document.addEventListener('drop', event => {
+    if (busy || document.querySelector('dialog[open]')) return;
+    document.getElementById('file').files = event.dataTransfer.files;
+    uploadForm.dispatchEvent(new Event('submit', {cancelable: true}));
+});
+window.onbeforeunload = () => dirty || report ? true : undefined;

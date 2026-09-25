@@ -10,7 +10,7 @@ export const addTips = function () {
                         const content = cell.getAttribute('data-content');
 
                         tooltip.querySelector('.title').textContent = title;
-                        tooltip.querySelector('.content').innerHTML = content;
+                        tooltip.querySelector('.content').textContent = content;
 
                         // tooltip.style.left = `${rect.left + window.pageXOffset + 5}px`;
                         // tooltip.style.top = `${rect.top + window.pageYOffset - (rect.height / 1.4)}px`;

@@ -1,146 +1,88 @@
-import { addTips } from "./tooltip.js";
-// Converts the html table displayed in the 'edit_submission' page to JSON that is formatted for to work like a pandas dataframe
-export const saveChanges = function() {
-    if (document.querySelector('.records-display-inner-container table tbody').children.length > 0){
-        let table = document.querySelector('div.records-display-inner-container table');
-        let rows = table.querySelectorAll('tr');
+import { browserEdits, context, report, root, sendComparison } from './edit_submission.js';
 
-        // show loader gif
-        const loadingModal = document.getElementById('loading-modal');
-        loadingModal.style.display = 'block';
-
-        let tableJSON = Array.from(rows).slice(1).map(row => {
-            let record = new Object();
-            Array.from(row.querySelectorAll('td')).forEach(
-                cell => {
-                    let colnameArray = Array.from(cell.classList).filter(cl => cl.includes('colname-'));
-
-                    // The table created by the app on the backend should be following a certain class naming convention
-                    console.assert(
-                        colnameArray.length === 1, 
-                        "table cell class naming convention not followed - there should be exactly one class that says colname-<colname> so the table can be converted to a json more efficiently"
-                    );
-
-                    let colname = colnameArray[0].replace('colname-','');
-                    
-                    record[colname] = cell.innerText;
-                    return ;
-                }
-            )
-            return record;
-        })
-
-        tableJSON = JSON.stringify(tableJSON);
-        console.log("tableJSON")
-        console.log(tableJSON);
-        
-        // Send the edited records to the server
-        fetch(`/${$SCRIPT_ROOT}/compare`, {
-            method: "post",
-            headers: { "Content-Type": "application/json" },
-            body: tableJSON
-        })
-        .then(resp => {
-            //console.log(resp.json());
-            return resp.json()
-        })
-        .then(data => {
-            console.log(data);
-            document.querySelector("#changed-records-display-inner-container").innerHTML = data.tbl;
-            document.querySelector("#added-records-display-inner-container").innerHTML = data.addtbl;
-            document.querySelector("#deleted-records-display-inner-container").innerHTML = data.deltbl;
-            
-            formatDataTable(data);
-            tableNavigation();
-            addTips();
-
-            // show/hide post change option buttons
-            Array.prototype.slice.call(document.querySelectorAll(".post-change-option")).map(
-                (b) => {
-                    if (data.errors.length == 0) {
-                        // No errors? unhide all post change buttons
-                        b.classList.remove("hidden");
-                    } else {
-                        // Errors? Make sure the buttons that should NOT show, dont show
-                        // Only the button to save changes after editing should show so that they can fix their errors
-                        b.classList.contains('clean-data-post-change-option') ? b.classList.add("hidden") : b.classList.remove("hidden");
-                    }
-                }
-            )
-
-            // hide loader gif
-            loadingModal.style.display = 'none';
-            return data;
-        })
-        .catch(err => {
-            console.log(err);
-        })
-    } else {
-        alert("No changes were made")
-    }
+export async function saveChanges() {
+    if (!report || report.request_type === 'delete') return;
+    await sendComparison(`${root}/compare`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(browserEdits())
+    });
 }
 
-export async function confirmFinalize(event) {
+const dialog = document.getElementById('finalize-dialog');
+const detailsForm = document.getElementById('finalize-details-form');
+const finalForm = document.getElementById('final-submit-form');
+const commentInput = document.getElementById('request-comment');
+const confirmationInput = document.getElementById('deletion-confirmation');
+const errorMessage = document.getElementById('finalize-error');
+let sending = false;
 
-    window.onbeforeunload = undefined;
+document.getElementById('save-change-btn').addEventListener('click', saveChanges);
+document.querySelectorAll('[data-close-finalize]').forEach(button => button.addEventListener('click', () => {
+    if (!sending) dialog.close();
+}));
+dialog.addEventListener('cancel', event => {
+    if (sending) event.preventDefault();
+});
+commentInput.addEventListener('input', () => commentInput.setCustomValidity(''));
+confirmationInput.addEventListener('input', () => confirmationInput.setCustomValidity(''));
 
-    // Ask for confirmation and store the result
-    const confirmation = confirm('Are you sure you want to finalize this change request?');
-
-    // If not confirmed, prevent further action
-    if (!confirmation) {
-        event.preventDefault(); // Prevent form submission
-        return false;
-    }
-
-    // Prompt for a comment
-    const comment = prompt('Please enter a comment about why you are requesting a change to the data:');
-
-    // Check if a comment was entered
-    if (!comment) {
-        alert('You must enter a comment to proceed.');
-        event.preventDefault(); // Prevent form submission
-        return false;
-    }
-
-    // Send the comment to the server
-    try {
-        const response = await fetch('savecomment', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ comment: comment })
-        });
-
-        if (!response.ok) {
-            event.preventDefault(); // Prevent form submission
-            throw new Error(`Server error: ${response.statusText}`);
-        }
-
-        console.log('Comment saved successfully');
-    } catch (error) {
-        console.error('Failed to save comment:', error);
-        alert('There was an error saving your comment. Please try again.');
-        event.preventDefault(); // Prevent form submission
-        return false;
-    }
-
-    // Return true to allow the form submission
-    console.log("All checks passed, form will now submit."); // Debugging statement
-    return true;
-}
-
-// Attach the function to the form programmatically
-document.getElementById('final-submit-form').addEventListener('submit', async function(event) {
+finalForm.addEventListener('submit', event => {
     event.preventDefault();
-     
-    const result = await confirmFinalize(event);
-    if (!result) {
-        console.log("Form submission prevented."); // Debugging statement
-        return    
-    } else {
-        console.log("Form submission allowed."); // Debugging statement
-        this.submit()
+    if (!report?.ready || document.getElementById('finalize-submission').classList.contains('hidden')) return;
+    const deleting = report.request_type === 'delete';
+    document.getElementById('finalize-title').textContent = deleting ? 'Submit deletion request' : 'Submit change request';
+    document.getElementById('finalize-description').textContent = deleting
+        ? 'Deletion is irreversible once SCCWRP staff run the SQL. All records in this submission will be removed.'
+        : 'SCCWRP staff will review this request before applying changes.';
+    document.getElementById('deletion-confirmation-field').classList.toggle('hidden', !deleting);
+    document.getElementById('send-request-button').classList.toggle('btn-danger', deleting);
+    confirmationInput.required = deleting;
+    confirmationInput.value = '';
+    confirmationInput.setCustomValidity('');
+    commentInput.setCustomValidity('');
+    errorMessage.textContent = '';
+    dialog.showModal();
+    commentInput.focus();
+});
+
+detailsForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (sending || !report?.ready) return;
+    if (!commentInput.value.trim()) {
+        commentInput.setCustomValidity('Enter a reason for this request.');
+        commentInput.reportValidity();
+        return;
+    }
+    if (report.request_type === 'delete' && confirmationInput.value.trim() !== String(context.submissionid)) {
+        confirmationInput.setCustomValidity('The submission ID does not match.');
+        confirmationInput.reportValidity();
+        return;
+    }
+    document.getElementById('final-comment').value = commentInput.value.trim();
+    document.getElementById('final-confirmation').value = confirmationInput.value.trim();
+    const sendButton = document.getElementById('send-request-button');
+    const label = sendButton.innerHTML;
+    sending = true;
+    dialog.setAttribute('aria-busy', 'true');
+    detailsForm.querySelectorAll('button, input, textarea').forEach(control => { control.disabled = true; });
+    sendButton.textContent = 'Sending request...';
+    errorMessage.textContent = '';
+    try {
+        const response = await fetch(finalForm.action, {method: 'POST', body: new FormData(finalForm)});
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || 'Finalization failed. Please try again.');
+        }
+        const page = await response.text();
+        window.onbeforeunload = undefined;
+        document.open();
+        document.write(page);
+        document.close();
+    } catch (error) {
+        errorMessage.textContent = error.message;
+    } finally {
+        sending = false;
+        dialog.removeAttribute('aria-busy');
+        detailsForm.querySelectorAll('button, input, textarea').forEach(control => { control.disabled = false; });
+        sendButton.innerHTML = label;
     }
 });

@@ -146,7 +146,7 @@ app.json_encoder = NpEncoder
 CUSTOM_CHECKS_DIRECTORY = os.path.join(os.getcwd(), 'proj','custom')
 app.dtypes = CUSTOM_CONFIG.get('dtypes')
 for dtyp in app.dtypes.keys():
-    for tbl, func_name in app.dtypes.get(dtyp).get("custom_checks_functions").items():
+    for tbl, func_name in app.dtypes.get(dtyp).get("custom_checks_functions", {}).items():
         add_custom_checks_function(CUSTOM_CHECKS_DIRECTORY, func_name)
 
 # fix the imports in the custom file
@@ -180,11 +180,28 @@ app.eng.execute(
         "change_date" timestamp(6),
         "change_processed" varchar(50) COLLATE "pg_catalog"."default",
         "change_comment" text COLLATE "pg_catalog"."default",
-        "login_fields" json
+        "login_fields" json,
+        "tablename" text,
+        "request_type" varchar(10)
     )
     """
 )
 
+
+app.eng.execute(
+    f"""
+    ALTER TABLE "sde"."{os.environ.get('CHANGE_HISTORY_TABLE')}"
+        ADD COLUMN IF NOT EXISTS "tablename" text;
+    ALTER TABLE "sde"."{os.environ.get('CHANGE_HISTORY_TABLE')}"
+        ADD COLUMN IF NOT EXISTS "request_type" varchar(10);
+    ALTER TABLE "sde"."submission_tracking_table"
+        ADD COLUMN IF NOT EXISTS "deleted_at" timestamp(6);
+    ALTER TABLE "sde"."submission_tracking_table"
+        ADD COLUMN IF NOT EXISTS "deleted_by" text;
+    ALTER TABLE "sde"."submission_tracking_table"
+        ADD COLUMN IF NOT EXISTS "deletion_change_id" int4;
+    """
+)
 
 
 users_table_exists = len(pd.read_sql(f"SELECT table_name FROM information_schema.tables WHERE table_name = '{app.users_table}';", app.eng)) > 0
